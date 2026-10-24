@@ -21,38 +21,68 @@
     font-size: 0.95em;
 }
 
+.jbx-card {
+    padding: 16px 20px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
 .jbx-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+    margin-bottom: 14px;
 }
 
 .jbx-title {
-    font-size: 0.8em;
-    letter-spacing: 0.12em;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.78em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    font-weight: 600;
-    opacity: 0.75;
+    font-weight: 700;
+    opacity: 0.85;
 }
 
 .jbx-title::before {
     content: "";
-    display: inline-block;
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: var(--jbx-accent);
-    margin-right: 8px;
-    vertical-align: 1px;
+    box-shadow: 0 0 10px var(--jbx-accent);
 }
 
 .jbx-tools {
     display: inline-flex;
-    gap: 14px;
+    gap: 6px;
+}
+
+.jbx-tool {
+    padding: 4px 11px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: inherit;
+    font: inherit;
+    font-size: 0.8em;
+    text-decoration: none;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.jbx-tool:hover,
+.jbx-tool:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+    opacity: 1;
+    outline: none;
 }
 
 .jbx-link,
@@ -61,7 +91,7 @@
     border: 0;
     padding: 0;
     color: inherit;
-    opacity: 0.6;
+    opacity: 0.7;
     font: inherit;
     font-size: 0.85em;
     text-decoration: underline;
@@ -73,21 +103,40 @@
     opacity: 1;
 }
 
-.jbx-mine,
-.jbx-wl {
+.jbx-body {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px 32px;
+}
+
+.jbx-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.jbx-rating-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 32px;
+}
+
+.jbx-actions-row {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 10px;
-    margin: 6px 0 10px;
+    margin-left: auto;
 }
 
 .jbx-label-s {
-    font-size: 0.8em;
-    letter-spacing: 0.1em;
+    font-size: 0.72em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    opacity: 0.65;
-    font-weight: 500;
+    opacity: 0.6;
+    font-weight: 600;
 }
 
 .jbx-accent {
@@ -95,8 +144,19 @@
 }
 
 .jbx-stars-text {
-    font-size: 1.1em;
-    letter-spacing: 1px;
+    font-size: 1.7em;
+    line-height: 1;
+    letter-spacing: 2px;
+}
+
+.jbx-stars-text.jbx-none {
+    font-size: 1em;
+    letter-spacing: 0;
+    opacity: 0.55;
+}
+
+.jbx-heart-inline {
+    filter: drop-shadow(0 0 6px rgba(255, 59, 92, 0.45));
 }
 
 .jbx-gap {
@@ -111,9 +171,13 @@
     font-size: 0.85em;
 }
 
+.jbx-note {
+    margin: 14px 0 0;
+}
+
 .jbx-warn {
     color: var(--jbx-warn);
-    margin: 6px 0;
+    margin: 0 0 12px;
 }
 
 .jbx-skeleton {
@@ -121,24 +185,46 @@
     font-size: 0.9em;
 }
 
+.jbx-empty {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+}
+
+.jbx-empty-text {
+    flex: 1 1 260px;
+    margin: 0;
+    opacity: 0.75;
+    line-height: 1.45;
+}
+
 .jbx-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 13px;
+    gap: 7px;
+    padding: 8px 16px;
     border-radius: 999px;
-    border: 1px solid rgba(128, 128, 128, 0.5);
-    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.05);
     color: inherit;
     font: inherit;
-    font-size: 0.85em;
+    font-size: 0.9em;
+    font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.jbx-chip:hover:not(:disabled),
+.jbx-chip:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
 }
 
 .jbx-chip.jbx-on {
     border-color: var(--jbx-warn);
     color: var(--jbx-warn);
-    background: rgba(224, 160, 48, 0.12);
+    background: rgba(224, 160, 48, 0.14);
 }
 
 .jbx-chip:disabled {
@@ -150,20 +236,30 @@
 
 .jbx-friends {
     margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .jbx-friends-head {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 10px;
+}
+
+.jbx-count {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 0.75em;
+    font-weight: 600;
 }
 
 .jbx-strip {
     display: flex;
-    gap: 14px;
+    gap: 10px;
     overflow-x: auto;
-    padding: 6px 2px 10px;
+    padding: 4px 2px 8px;
     scrollbar-width: thin;
 }
 
@@ -171,17 +267,45 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
     flex: 0 0 auto;
-    background: none;
-    border: 0;
-    padding: 0;
+    width: 92px;
+    padding: 10px 6px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.04);
     color: inherit;
+    font: inherit;
     cursor: default;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .jbx-friend.jbx-has-review {
     cursor: pointer;
+}
+
+.jbx-friend.jbx-has-review:hover,
+.jbx-friend.jbx-has-review:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--jbx-accent);
+    background: rgba(255, 255, 255, 0.09);
+    outline: none;
+}
+
+.jbx-friend-name {
+    max-width: 100%;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.82em;
+    font-weight: 600;
+}
+
+.jbx-friend-stars {
+    font-size: 0.78em;
+    letter-spacing: 0.5px;
+    min-height: 1em;
 }
 
 .jbx-avatar-wrap {
@@ -196,14 +320,8 @@
     height: 46px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid transparent;
-    transition: border-color 0.15s ease;
     display: block;
-}
-
-.jbx-friend:hover .jbx-avatar,
-.jbx-friend:focus-visible .jbx-avatar {
-    border-color: var(--jbx-accent);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12);
 }
 
 .jbx-avatar-ph {
@@ -217,24 +335,24 @@
 
 .jbx-badge-dot {
     position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 14px;
-    height: 14px;
+    right: -3px;
+    bottom: -3px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    background: var(--jbx-line);
-    border: 2px solid var(--jbx-bg);
+    background: var(--jbx-accent);
+    border: 2px solid #14181c;
 }
 
 .jbx-badge-dot::after {
     content: "";
     position: absolute;
-    left: 2px;
-    right: 2px;
-    top: 3px;
+    left: 3px;
+    right: 3px;
+    top: 4px;
     height: 1px;
-    background: var(--jbx-muted);
-    box-shadow: 0 2px 0 var(--jbx-muted);
+    background: #04140a;
+    box-shadow: 0 2px 0 #04140a;
 }
 
 /* ---------------------------------------------------------------- poster badges */
@@ -242,20 +360,24 @@
 .jbx-badge {
     position: absolute;
     z-index: 50;
-    white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px 7px;
-    border-radius: 10px;
-    background: rgba(20, 24, 28, 0.86);
+    gap: 5px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(12, 16, 20, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     color: var(--jbx-accent);
-    font: 600 11px/1 sans-serif;
-    letter-spacing: 0.4px;
+    font: 700 12px/1 system-ui, sans-serif;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
     pointer-events: none;
-    backdrop-filter: blur(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
+.jbx-badge-star { flex: none; }
 .jbx-pos-top-left { top: 6px; left: 6px; }
 .jbx-pos-top-right { top: 6px; right: 6px; }
 .jbx-pos-bottom-left { bottom: 6px; left: 6px; }
