@@ -4,6 +4,15 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-24
+
+### Added
+- Floating **Letterboxd** button that opens the film panel in a dialog when a theme or layout (such as ElegantFin / the Modern layout) hides the normal panel.
+
+### Fixed
+- Checking pasted cookies now reports Letterboxd's bot check clearly instead of saying the cookies are invalid.
+- Release workflow can reuse an existing release and can be started manually.
+
 ## [1.0.0] - 2026-10-24
 
 First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and-script prototype.
@@ -27,5 +36,6 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/YousefMohsen0/jellyboxed/releases/tag/v1.0.0
