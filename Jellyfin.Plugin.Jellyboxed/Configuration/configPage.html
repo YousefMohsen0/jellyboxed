@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Jellyboxed</title>
+</head>
+<body>
+<div id="JellyboxedPage" data-role="page" class="page type-interior pluginConfigurationPage">
+    <div data-role="content">
+        <div class="content-primary">
+            <style>
+                #JellyboxedPage .jbxc-section { margin: 0 0 2em; }
+                #JellyboxedPage .jbxc-section h2 { margin: 0 0 .4em; font-size: 1.25em; }
+                #JellyboxedPage .jbxc-help { opacity: .7; font-size: .9em; margin: 0 0 1em; }
+                #JellyboxedPage .jbxc-field { margin: 0 0 1.1em; max-width: 36em; }
+                #JellyboxedPage .jbxc-field label.jbxc-lbl { display: block; margin-bottom: .3em; font-weight: 500; }
+                #JellyboxedPage .jbxc-field small { display: block; opacity: .65; margin-top: .25em; }
+                #JellyboxedPage .jbxc-check { display: flex; gap: .7em; align-items: flex-start; margin: 0 0 .9em; cursor: pointer; max-width: 40em; }
+                #JellyboxedPage .jbxc-check input { margin-top: .25em; width: 1.1em; height: 1.1em; flex: 0 0 auto; }
+                #JellyboxedPage .jbxc-check small { display: block; opacity: .65; }
+                #JellyboxedPage input[type=text], #JellyboxedPage input[type=number], #JellyboxedPage select, #JellyboxedPage textarea {
+                    width: 100%; box-sizing: border-box; padding: .6em .7em; background: rgba(128,128,128,.12);
+                    border: 1px solid rgba(128,128,128,.45); border-radius: 4px; color: inherit; font: inherit;
+                }
+                #JellyboxedPage input[type=color] { width: 4em; height: 2.2em; padding: 0; border: 1px solid rgba(128,128,128,.45); background: none; }
+                #JellyboxedPage table { width: 100%; border-collapse: collapse; }
+                #JellyboxedPage th, #JellyboxedPage td { text-align: left; padding: .6em .5em; border-bottom: 1px solid rgba(128,128,128,.25); vertical-align: top; }
+                #JellyboxedPage .jbxc-btn { padding: .5em 1em; margin: 0 .4em .4em 0; border-radius: 4px; border: 1px solid rgba(128,128,128,.6); background: transparent; color: inherit; cursor: pointer; font: inherit; }
+                #JellyboxedPage .jbxc-btn.primary { background: #00a4dc; border-color: #00a4dc; color: #fff; }
+                #JellyboxedPage .jbxc-btn.danger { color: #ff6b6b; border-color: #ff6b6b; }
+                #JellyboxedPage .jbxc-banner { padding: .8em 1em; border-radius: 4px; margin: 0 0 1.5em; background: rgba(128,128,128,.15); }
+                #JellyboxedPage .jbxc-banner.warn { background: rgba(224,160,48,.2); border-left: 4px solid #e0a030; }
+                #JellyboxedPage .jbxc-banner.err { background: rgba(255,64,64,.15); border-left: 4px solid #ff4040; }
+                #JellyboxedPage .jbxc-banner.ok { background: rgba(0,200,100,.12); border-left: 4px solid #00c864; }
+                #JellyboxedPage .jbxc-inline-form { padding: .8em; margin: .5em 0; border: 1px solid rgba(128,128,128,.35); border-radius: 6px; }
+                #JellyboxedPage .jbxc-inline-form textarea { min-height: 5em; }
+                #JellyboxedPage .jbxc-pill { display: inline-block; padding: .1em .6em; border-radius: 999px; font-size: .8em; background: rgba(128,128,128,.25); }
+                #JellyboxedPage .jbxc-pill.session { background: rgba(0,200,100,.25); }
+                #JellyboxedPage .jbxc-pill.public { background: rgba(224,160,48,.25); }
+            </style>
+
+            <h1>Jellyboxed</h1>
+            <p class="jbxc-help">
+                Letterboxd inside Jellyfin. Everything below can be switched off. After changing settings, users may need to refresh their browser tab.
+                <a href="https://github.com/YousefMohsen0/jellyboxed#readme" target="_blank" rel="noopener noreferrer">Documentation</a>
+            </p>
+
+            <div id="jbxcStatus"></div>
+
+            <form id="jbxcForm" autocomplete="off">
+                <div id="jbxcSettings"></div>
+                <div style="margin: 1em 0 2.5em;">
+                    <button type="submit" class="jbxc-btn primary">Save settings</button>
+                    <span id="jbxcSaved" class="jbxc-help" style="display:none;">Saved.</span>
+                </div>
+            </form>
+
+            <div class="jbxc-section" id="jbxcAccountsSection">
+                <h2>Letterboxd accounts</h2>
+                <p class="jbxc-help">
+                    Each Jellyfin user has their own Letterboxd account. Users can connect themselves from any film page
+                    (if allowed above), or you can connect an account for them here. Cookies and sessions are stored only on this server and never sent to browsers.
+                </p>
+                <div id="jbxcAccounts">Loading&hellip;</div>
+            </div>
+
+            <div class="jbxc-section">
+                <h2>Maintenance</h2>
+                <button type="button" class="jbxc-btn" id="jbxcResume">Resume Letterboxd requests now</button>
+                <button type="button" class="jbxc-btn danger" id="jbxcClear">Clear all caches and re-sync</button>
+                <p class="jbxc-help">Caches rebuild automatically. Clearing is only needed if something looks wrong.</p>
+            </div>
+
+            <script type="text/javascript">
+                (function () {
+                    var PLUGIN_ID = '7b2f4a9e-3c61-4d58-9e0a-5f1c8d2b6a47';
+                    var page = document.querySelector('#JellyboxedPage');
+                    var settingsHost = page.querySelector('#jbxcSettings');
+                    var config = null;
+
+                    // ---------------------------------------------------------------- what the settings page shows
+                    var SECTIONS = [
+                        { title: 'Features', help: 'Turn off anything you do not want on this server. Disabled features disappear for everybody.', fields: [
+                            ['InjectWebUi', 'bool', 'Add Jellyboxed to the Jellyfin web interface', 'Turn this off only if you load the script some other way (see the README), or to disable the whole UI.'],
+                            ['EnableMyRating', 'bool', 'Show my Letterboxd rating on film pages'],
+                            ['EnableLogging', 'bool', 'Let users rate, review and log films', 'Needs a signed-in Letterboxd session.'],
+                            ['EnableWatchlist', 'bool', 'Show the watchlist button on film pages'],
+                            ['EnableFriendsFeed', 'bool', 'Show "Activity from friends" on film pages', 'Needs a signed-in Letterboxd session.'],
+                            ['EnableFriendReviews', 'bool', 'Let users read friends’ reviews'],
+                            ['EnablePosterBadges', 'bool', 'Draw rating badges on library posters'],
+                            ['EnablePlaybackPrompt', 'bool', 'Offer to log a film after it has been watched'],
+                            ['AllowWatchlistToFavorites', 'bool', 'Allow users to mirror their Letterboxd watchlist onto Jellyfin favourites', 'Opt-in per user. Only ever adds favourites.']
+                        ]},
+                        { title: 'Sign-in options', help: 'How users may connect Letterboxd. A username alone gives read-only access to a public profile.', fields: [
+                            ['AllowUserSelfConnect', 'bool', 'Let users connect their own Letterboxd account'],
+                            ['AllowPasswordLogin', 'bool', 'Allow signing in with a Letterboxd username and password', 'The password is used once and never stored; only the session is kept. Letterboxd may ask for a captcha, which cannot be completed here.'],
+                            ['AllowCookieLogin', 'bool', 'Allow pasting browser cookies as a fallback']
+                        ]},
+                        { title: 'Appearance & behaviour', fields: [
+                            ['AccentColor', 'color', 'Accent colour'],
+                            ['BadgePosition', 'select', 'Poster badge position', null, [['top-left', 'Top left'], ['top-right', 'Top right'], ['bottom-left', 'Bottom left'], ['bottom-right', 'Bottom right']]],
+                            ['BadgeShowRating', 'bool', 'Badges show the star rating'],
+                            ['BadgeShowLoved', 'bool', 'Badges show the "loved" heart'],
+                            ['BadgeShowWatchlist', 'bool', 'Badges mark films on the watchlist'],
+                            ['MaxFriendsShown', 'int', 'Maximum friends shown per film', null, [1, 200]],
+                            ['PromptMinWatchedPercent', 'int', 'Offer to log after watching at least this much of a film (%)', null, [1, 100]],
+                            ['PromptCooldownHours', 'int', 'Do not ask about the same film again for (hours)', null, [1, 8760]]
+                        ]},
+                        { title: 'Caching & syncing', help: 'Defaults are gentle on Letterboxd. Raising request speed can get your server temporarily blocked.', fields: [
+                            ['EnableBackgroundSync', 'bool', 'Keep ratings, likes and watchlists in sync in the background'],
+                            ['FullSyncIntervalHours', 'int', 'Full sync every (hours)', null, [1, 720]],
+                            ['QuickSyncIntervalMinutes', 'int', 'Check for new activity every (minutes, 0 = off)', null, [0, 1440]],
+                            ['RatingCacheMinutes', 'int', 'Trust cached ratings for (minutes)', null, [5, 43200]],
+                            ['FriendsCacheMinutes', 'int', 'Cache friends’ activity for (minutes)', null, [1, 1440]],
+                            ['RequestDelayMs', 'int', 'Minimum delay between Letterboxd requests (ms)', null, [0, 10000]],
+                            ['MaxConcurrentRequests', 'int', 'Simultaneous Letterboxd requests', null, [1, 8]],
+                            ['RequestTimeoutSeconds', 'int', 'Request timeout (seconds)', null, [5, 120]]
+                        ]},
+                        { title: 'Advanced', help: 'Only touch these if something does not show up. Selectors are standard CSS selectors.', fields: [
+                            ['DetailPageSelector', 'text', 'Where to place the film panel (CSS selector)', 'Tried before the built-in guesses. Example: .detailPagePrimaryContainer'],
+                            ['CardSelector', 'text', 'Which elements are library poster cards (CSS selector)', 'Must match elements that carry a data-id attribute. Default: [data-id]'],
+                            ['UserAgent', 'text', 'Custom User-Agent for Letterboxd requests', 'Leave empty for the built-in browser-like value.'],
+                            ['DebugLogging', 'bool', 'Verbose logging (server log and browser console)']
+                        ]}
+                    ];
+
+                    var controls = {};
+
+                    function buildSettings() {
+                        settingsHost.textContent = '';
+                        controls = {};
+                        SECTIONS.forEach(function (sec) {
+                            var wrap = document.createElement('div');
+                            wrap.className = 'jbxc-section';
+                            var h2 = document.createElement('h2'); h2.textContent = sec.title; wrap.appendChild(h2);
+                            if (sec.help) { var p = document.createElement('p'); p.className = 'jbxc-help'; p.textContent = sec.help; wrap.appendChild(p); }
+                            sec.fields.forEach(function (f) {
+                                var key = f[0], type = f[1], label = f[2], help = f[3], extra = f[4];
+                                var el;
+                                if (type === 'bool') {
+                                    var l = document.createElement('label'); l.className = 'jbxc-check';
+                                    el = document.createElement('input'); el.type = 'checkbox';
+                                    var span = document.createElement('span'); span.textContent = label;
+                                    if (help) { var sm = document.createElement('small'); sm.textContent = help; span.appendChild(sm); }
+                                    l.appendChild(el); l.appendChild(span); wrap.appendChild(l);
+                                } else {
+                                    var field = document.createElement('div'); field.className = 'jbxc-field';
+                                    var lb = document.createElement('label'); lb.className = 'jbxc-lbl'; lb.textContent = label; field.appendChild(lb);
+                                    if (type === 'select') {
+                                        el = document.createElement('select');
+                                        extra.forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; el.appendChild(op); });
+                                    } else if (type === 'color') {
+                                        el = document.createElement('input'); el.type = 'color';
+                                    } else if (type === 'int') {
+                                        el = document.createElement('input'); el.type = 'number'; el.min = extra[0]; el.max = extra[1]; el.step = 1;
+                                    } else {
+                                        el = document.createElement('input'); el.type = 'text';
+                                    }
+                                    lb.htmlFor = el.id = 'jbxc-' + key;
+                                    field.appendChild(el);
+                                    if (help) { var s2 = document.createElement('small'); s2.textContent = help; field.appendChild(s2); }
+                                    wrap.appendChild(field);
+                                }
+                                controls[key] = { el: el, type: type, range: extra };
+                            });
+                            settingsHost.appendChild(wrap);
+                        });
+                    }
+
+                    function fill() {
+                        Object.keys(controls).forEach(function (key) {
+                            var c = controls[key], v = config[key];
+                            if (c.type === 'bool') { c.el.checked = !!v; }
+                            else if (v !== undefined && v !== null) { c.el.value = v; }
+                        });
+                    }
+
+                    function collect() {
+                        Object.keys(controls).forEach(function (key) {
+                            var c = controls[key];
+                            if (c.type === 'bool') { config[key] = c.el.checked; }
+                            else if (c.type === 'int') {
+                                var n = parseInt(c.el.value, 10);
+                                if (isNaN(n)) { n = config[key]; }
+                                config[key] = Math.min(c.range[1], Math.max(c.range[0], n));
+                            } else { config[key] = (c.el.value || '').trim(); }
+                        });
+                    }
+
+                    // ---------------------------------------------------------------- plugin API (admin)
+                    function authHeader() {
+                        function q(v) { return String(v === undefined || v === null ? '' : v).replace(/"/g, ''); }
+                        var c = window.ApiClient, parts = [];
+                        try { parts.push('Client="' + q(c.appName()) + '"'); } catch (e) { }
+                        try { parts.push('Device="' + q(c.deviceName()) + '"'); } catch (e) { }
+                        try { parts.push('DeviceId="' + q(c.deviceId()) + '"'); } catch (e) { }
+                        try { parts.push('Version="' + q(c.appVersion()) + '"'); } catch (e) { }
+                        parts.push('Token="' + q(c.accessToken()) + '"');
+                        return 'MediaBrowser ' + parts.join(', ');
+                    }
+                    function api(path, method, body) {
+                        return fetch(ApiClient.getUrl('Jellyboxed/' + path), {
+                            method: method || 'GET',
+                            headers: Object.assign({ Authorization: authHeader(), Accept: 'application/json' }, body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+                            body: body !== undefined ? JSON.stringify(body) : undefined
+                        }).then(function (res) {
+                            return res.text().then(function (t) {
+                                var d = null; try { d = t ? JSON.parse(t) : null; } catch (e) { }
+                                if (!res.ok) { throw new Error((d && d.message) || ('Request failed (' + res.status + ')')); }
+                                return d;
+                            });
+                        });
+                    }
+
+                    function banner(kind, text) {
+                        var d = document.createElement('div'); d.className = 'jbxc-banner ' + kind; d.textContent = text; return d;
+                    }
+
+                    // ---------------------------------------------------------------- status
+                    function loadStatus() {
+                        var host = page.querySelector('#jbxcStatus');
+                        api('admin/status').then(function (s) {
+                            host.textContent = '';
+                            if (s.blocked) {
+                                host.appendChild(banner('warn', 'Letterboxd requests are paused: ' + (s.reason || 'backing off') + '. Resumes at ' + new Date(s.until).toLocaleTimeString() + '.'));
+                            }
+                            host.appendChild(banner('', 'Plugin version ' + s.version + ' • ' + s.libraryMovies + ' movies with a TMDB id in the library • ' + s.knownFilms + ' films matched with Letterboxd.'));
+                        }).catch(function () { host.textContent = ''; });
+                    }
+
+                    // ---------------------------------------------------------------- accounts
+                    function pill(level) {
+                        var s = document.createElement('span');
+                        s.className = 'jbxc-pill ' + level;
+                        s.textContent = level === 'session' ? 'Signed in' : (level === 'public' ? 'Username only' : 'Not connected');
+                        return s;
+                    }
+
+                    function loadAccounts() {
+                        var host = page.querySelector('#jbxcAccounts');
+                        api('admin/accounts').then(function (res) {
+                            host.textContent = '';
+                            var table = document.createElement('table');
+                            var thead = document.createElement('thead'); var tr = document.createElement('tr');
+                            ['Jellyfin user', 'Letterboxd', 'Access', 'Sync', ''].forEach(function (t) { var th = document.createElement('th'); th.textContent = t; tr.appendChild(th); });
+                            thead.appendChild(tr); table.appendChild(thead);
+                            var tbody = document.createElement('tbody');
+                            (res.users || []).forEach(function (u) { tbody.appendChild(accountRow(u)); });
+                            table.appendChild(tbody); host.appendChild(table);
+                        }).catch(function (e) { host.textContent = ''; host.appendChild(banner('err', e.message)); });
+                    }
+
+                    function accountRow(u) {
+                        var a = u.account || {};
+                        var tr = document.createElement('tr');
+                        var td1 = document.createElement('td'); td1.textContent = u.userName; tr.appendChild(td1);
+                        var td2 = document.createElement('td');
+                        if (a.username) { var link = document.createElement('a'); link.href = 'https://letterboxd.com/' + encodeURIComponent(a.username) + '/'; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = a.username; td2.appendChild(link); }
+                        else { td2.textContent = '—'; }
+                        tr.appendChild(td2);
+                        var td3 = document.createElement('td'); td3.appendChild(pill(a.level || 'none'));
+                        if (a.lastError) { var er = document.createElement('div'); er.className = 'jbxc-help'; er.textContent = a.lastError; td3.appendChild(er); }
+                        tr.appendChild(td3);
+                        var td4 = document.createElement('td');
+                        var sync = a.sync || {};
+                        var line = sync.running ? ('Syncing: ' + sync.phase + (sync.total ? ' (' + sync.done + '/' + sync.total + ')' : '')) :
+                            (a.lastFullSync ? new Date(a.lastFullSync).toLocaleString() : (a.connected ? 'Waiting for first sync' : ''));
+                        td4.textContent = line;
+                        if (a.counts && a.connected) { var c = document.createElement('div'); c.className = 'jbxc-help'; c.textContent = a.counts.rated + ' rated • ' + a.counts.liked + ' liked • ' + a.counts.watchlist + ' watchlist'; td4.appendChild(c); }
+                        tr.appendChild(td4);
+                        var td5 = document.createElement('td');
+                        var formHost = document.createElement('div');
+                        var connect = button(a.connected ? 'Change' : 'Connect', function () { toggleForm(formHost, u); });
+                        td5.appendChild(connect);
+                        if (a.connected) {
+                            td5.appendChild(button('Sync now', function () { api('admin/accounts/' + u.userId + '/sync', 'POST').then(function () { setTimeout(loadAccounts, 600); }).catch(alertErr); }));
+                            td5.appendChild(button('Disconnect', function () {
+                                if (window.confirm('Disconnect ' + u.userName + '’s Letterboxd account and delete its cached data?')) { api('admin/accounts/' + u.userId, 'DELETE').then(loadAccounts).catch(alertErr); }
+                            }, 'danger'));
+                        }
+                        td5.appendChild(formHost);
+                        tr.appendChild(td5);
+                        return tr;
+                    }
+
+                    function button(text, onclick, cls) {
+                        var b = document.createElement('button'); b.type = 'button'; b.className = 'jbxc-btn' + (cls ? ' ' + cls : ''); b.textContent = text; b.addEventListener('click', onclick); return b;
+                    }
+                    function alertErr(e) { window.alert(e.message || e); }
+
+                    function toggleForm(host, u) {
+                        if (host.firstChild) { host.textContent = ''; return; }
+                        var form = document.createElement('div'); form.className = 'jbxc-inline-form';
+                        var help = document.createElement('p'); help.className = 'jbxc-help';
+                        help.textContent = 'Enter the Letterboxd username for ' + u.userName + '. Add cookies from a signed-in browser to also allow logging and friends’ activity. Leave cookies empty for read-only access.';
+                        var user = document.createElement('input'); user.type = 'text'; user.placeholder = 'Letterboxd username';
+                        var cookies = document.createElement('textarea'); cookies.placeholder = 'Cookies (optional)'; cookies.spellcheck = false;
+                        var msg = document.createElement('div');
+                        var save = button('Connect', function () {
+                            msg.textContent = '';
+                            save.disabled = true;
+                            api('admin/accounts/' + u.userId, 'PUT', { username: user.value.trim(), cookies: cookies.value.trim() }).then(function () { loadAccounts(); })
+                                .catch(function (e) { msg.textContent = ''; msg.appendChild(banner('err', e.message)); save.disabled = false; });
+                        }, 'primary');
+                        form.appendChild(help); form.appendChild(user); form.appendChild(document.createElement('br')); form.appendChild(document.createElement('br'));
+                        form.appendChild(cookies); form.appendChild(msg); form.appendChild(save);
+                        form.appendChild(button('Cancel', function () { host.textContent = ''; }));
+                        host.appendChild(form);
+                        user.focus();
+                    }
+
+                    // ---------------------------------------------------------------- wiring
+                    page.querySelector('#jbxcForm').addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        Dashboard.showLoadingMsg();
+                        ApiClient.getPluginConfiguration(PLUGIN_ID).then(function (fresh) {
+                            config = fresh; collect();
+                            return ApiClient.updatePluginConfiguration(PLUGIN_ID, config);
+                        }).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                            var s = page.querySelector('#jbxcSaved'); s.style.display = ''; setTimeout(function () { s.style.display = 'none'; }, 3000);
+                        });
+                        return false;
+                    });
+
+                    page.querySelector('#jbxcResume').addEventListener('click', function () { api('admin/resume', 'POST').then(loadStatus).catch(alertErr); });
+                    page.querySelector('#jbxcClear').addEventListener('click', function () {
+                        if (window.confirm('Delete all cached Letterboxd data and re-sync every account? This can take a while for large libraries.')) {
+                            api('admin/clear-cache', 'POST').then(function () { loadStatus(); loadAccounts(); }).catch(alertErr);
+                        }
+                    });
+
+                    var refresher = null;
+                    page.addEventListener('pageshow', function () {
+                        Dashboard.showLoadingMsg();
+                        buildSettings();
+                        ApiClient.getPluginConfiguration(PLUGIN_ID).then(function (cfg) {
+                            config = cfg; fill(); Dashboard.hideLoadingMsg();
+                        });
+                        loadStatus(); loadAccounts();
+                        clearInterval(refresher);
+                        refresher = setInterval(function () { if (page.isConnected && !document.hidden && !page.querySelector('.jbxc-inline-form')) { loadAccounts(); loadStatus(); } }, 8000);
+                    });
+                    page.addEventListener('pagehide', function () { clearInterval(refresher); });
+                })();
+            </script>
+        </div>
+    </div>
+</div>
+</body>
+</html>
