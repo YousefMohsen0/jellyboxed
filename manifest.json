@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.0.1.0",
+        "changelog": "Release 1.0.1",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.0.1/jellyboxed_1.0.1.0.zip",
+        "checksum": "B9661C6C9314489C2E1D5D71915664CA",
+        "timestamp": "2026-10-24T11:56:05Z"
+      },
+      {
         "version": "1.0.0.0",
         "changelog": "First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and-script prototype.\n\n### Added\n- Jellyfin 12.x plugin (.NET 10) installable from a plugin repository manifest.\n- Admin settings page: every feature has a switch, plus appearance, caching, sync and advanced options.\n- Per-user Letterboxd accounts with three sign-in levels: username only (public, read-only), password sign-in (password never stored) and pasted cookies as a fallback.\n- Poster badges (rating, loved, watchlist), \"My Letterboxd\" panel, friends' activity and reviews.\n- Log and review dialog with half-star picker, rewatch, spoilers and date.\n- Watchlist add/remove with optional mirroring to Jellyfin favourites.\n- Server-side \"log it?\" prompt after watching, from any client.\n- Background sync with persistent, atomic caches and stale-while-revalidate.\n- Shared request gate with spacing, concurrency limit and automatic back-off.\n- Automatic web interface injection without modifying files on disk.\n- GPL-3.0 license, contributing guide, security policy, CI and release workflows.\n\n### Fixed (compared with the prototype)\n- No more unauthenticated open proxy; all endpoints use Jellyfin authentication.\n- No HTML injection from Letterboxd content.\n- Cookies rotated by Letterboxd are saved instead of lost.\n- Transient failures are no longer cached as \"not found\".\n\n[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.0.0...HEAD\n[1.0.0]: https://github.com/YousefMohsen0/jellyboxed/releases/tag/v1.0.0",
         "targetAbi": "12.0.0.0",
