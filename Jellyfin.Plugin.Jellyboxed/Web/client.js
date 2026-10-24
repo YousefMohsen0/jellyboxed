@@ -637,7 +637,7 @@
     }
 
     function removePanel() {
-        var old = document.querySelectorAll('.jbx-panel');
+        var old = document.querySelectorAll('.jbx-panel:not(.jbx-in-dialog)');
         for (var i = 0; i < old.length; i++) {
             old[i].parentNode.removeChild(old[i]);
         }
@@ -936,6 +936,55 @@
         window.fetch = wrapped;
     }
 
+    // ------------------------------------------------------------------ fallback button
+    // Some themes / layouts hide or restyle the place where the panel is mounted. If no panel is
+    // visible a little while after opening a film page, offer a floating button that opens the same
+    // panel in a dialog, so the plugin is always reachable.
+
+    var fabTimer = null;
+
+    function panelVisible() {
+        var list = document.querySelectorAll('.jbx-panel:not(.jbx-in-dialog)');
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].isConnected && list[i].offsetHeight > 0 && list[i].getClientRects().length > 0 && !list[i].closest('.hide, [hidden]')) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function removeFab() {
+        var old = document.querySelectorAll('.jbx-fab');
+        for (var i = 0; i < old.length; i++) { old[i].parentNode.removeChild(old[i]); }
+    }
+
+    function openPanelDialog(itemId) {
+        var box = h('section', { class: 'jbx-panel jbx-in-dialog', 'data-item': itemId, 'aria-label': 'Letterboxd' },
+            h('div', { class: 'jbx-skeleton', text: 'Loading Letterboxd…' }));
+        modal('Letterboxd', box, { wide: true });
+        api('item/' + itemId).then(function (info) {
+            if (!info || !info.isMovie || !info.hasTmdb) {
+                box.textContent = '';
+                box.appendChild(h('p', { class: 'jbx-muted', text: 'Letterboxd is only available for movies that have a TMDB id in Jellyfin.' }));
+                return;
+            }
+            renderPanel(box, itemId, info);
+        }).catch(function (e) { renderPanelError(box, itemId, e); });
+    }
+
+    function scheduleFabCheck(itemId) {
+        if (fabTimer) { clearTimeout(fabTimer); }
+        fabTimer = setTimeout(function () {
+            fabTimer = null;
+            if (itemIdFromLocation() !== itemId || !me || panelVisible()) { return; }
+            if (document.querySelector('.jbx-fab')) { return; }
+            document.body.appendChild(h('button', {
+                class: 'jbx-fab', type: 'button', title: 'Letterboxd', 'aria-label': 'Open Letterboxd',
+                text: 'Letterboxd', onclick: function () { openPanelDialog(itemId); }
+            }));
+        }, 3000);
+    }
+
     // ------------------------------------------------------------------ page watching
 
     var scan = throttleFrame(function () {
@@ -944,16 +993,18 @@
         var id = itemIdFromLocation();
         if (!id) {
             if (mountedFor) { mountedFor = null; }
+            removeFab();
             return;
         }
-        var existing = document.querySelector('.jbx-panel');
+        if (panelVisible()) { removeFab(); } else { scheduleFabCheck(id); }
+        var existing = document.querySelector('.jbx-panel:not(.jbx-in-dialog)');
         if (existing && existing.isConnected && existing.getAttribute('data-item') === id && mountedFor === id) {
             return;
         }
         if (existing && existing.getAttribute('data-item') !== id) {
             removePanel();
         }
-        if (mountedFor !== id || !document.querySelector('.jbx-panel')) {
+        if (mountedFor !== id || !document.querySelector('.jbx-panel:not(.jbx-in-dialog)')) {
             mountedFor = null;
             mountPanel(id);
         }
