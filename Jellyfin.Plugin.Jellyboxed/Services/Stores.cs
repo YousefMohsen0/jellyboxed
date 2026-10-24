@@ -59,8 +59,16 @@ public sealed class AccountStore : IDisposable
         }
     }
 
-    /// <summary>Creates or modifies an account atomically.</summary>
-    public LetterboxdAccount Update(Guid userId, Action<LetterboxdAccount> change)
+    /// <summary>Creates or modifies an account atomically (used when a user connects).</summary>
+    public LetterboxdAccount Upsert(Guid userId, Action<LetterboxdAccount> change) => Modify(userId, change, create: true)!;
+
+    /// <summary>
+    /// Modifies an existing account atomically. Returns null (and does nothing) when the account is gone, so a
+    /// background sync can never resurrect an account that was just disconnected.
+    /// </summary>
+    public LetterboxdAccount? Update(Guid userId, Action<LetterboxdAccount> change) => Modify(userId, change, create: false);
+
+    private LetterboxdAccount? Modify(Guid userId, Action<LetterboxdAccount> change, bool create)
     {
         LetterboxdAccount copy;
         lock (_file.SyncRoot)
@@ -68,6 +76,11 @@ public sealed class AccountStore : IDisposable
             var account = _file.Value.Accounts.FirstOrDefault(a => a.UserId == userId);
             if (account is null)
             {
+                if (!create)
+                {
+                    return null;
+                }
+
                 account = new LetterboxdAccount { UserId = userId };
                 _file.Value.Accounts.Add(account);
             }
@@ -191,6 +204,7 @@ public sealed class SlugResolver : IDisposable
     private readonly LetterboxdClient _anonymous;
     private Dictionary<string, string> _reverse = new(StringComparer.Ordinal);
     private bool _reverseDirty = true;
+    private long _stamp;
 
     public SlugResolver(RequestGate gate, ILogger<SlugResolver> logger)
     {
@@ -233,8 +247,12 @@ public sealed class SlugResolver : IDisposable
         }
     }
 
+    /// <summary>Gets a counter that changes whenever a TMDB-to-slug answer is learned or the map is cleared.</summary>
+    public long Stamp => Interlocked.Read(ref _stamp);
+
     public void Remember(string tmdbId, string? slug)
     {
+        Interlocked.Increment(ref _stamp);
         lock (_file.SyncRoot)
         {
             _file.Value.Entries[tmdbId] = new SlugEntry { Slug = slug, UpdatedAt = DateTimeOffset.UtcNow };
@@ -260,6 +278,7 @@ public sealed class SlugResolver : IDisposable
 
     public void Clear()
     {
+        Interlocked.Increment(ref _stamp);
         lock (_file.SyncRoot)
         {
             _file.Value.Entries.Clear();

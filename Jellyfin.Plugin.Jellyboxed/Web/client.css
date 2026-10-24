@@ -241,7 +241,8 @@
 
 .jbx-badge {
     position: absolute;
-    z-index: 5;
+    z-index: 50;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -259,6 +260,10 @@
 .jbx-pos-top-right { top: 6px; right: 6px; }
 .jbx-pos-bottom-left { bottom: 6px; left: 6px; }
 .jbx-pos-bottom-right { bottom: 6px; right: 6px; }
+.jbx-pos-top-center { top: 6px; left: 50%; transform: translateX(-50%); }
+.jbx-pos-bottom-center { bottom: 6px; left: 50%; transform: translateX(-50%); }
+.jbx-pos-middle-left { top: 50%; left: 6px; transform: translateY(-50%); }
+.jbx-pos-middle-right { top: 50%; right: 6px; transform: translateY(-50%); }
 
 /* ---------------------------------------------------------------- buttons, inputs */
 

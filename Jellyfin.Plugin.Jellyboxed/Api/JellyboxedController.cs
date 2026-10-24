@@ -669,7 +669,7 @@ public class JellyboxedController : ControllerBase
         }
 
         var cookieString = sessionValid ? probe.ExportCookies() : string.Empty;
-        var updated = _accounts.Update(userId, a =>
+        var updated = _accounts.Upsert(userId, a =>
         {
             a.Username = finalUsername;
             a.Cookies = cookieString;

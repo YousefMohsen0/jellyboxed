@@ -98,7 +98,7 @@
                         ]},
                         { title: 'Appearance & behaviour', fields: [
                             ['AccentColor', 'color', 'Accent colour'],
-                            ['BadgePosition', 'select', 'Poster badge position', null, [['top-left', 'Top left'], ['top-right', 'Top right'], ['bottom-left', 'Bottom left'], ['bottom-right', 'Bottom right']]],
+                            ['BadgePosition', 'select', 'Poster badge position', null, [['top-left', 'Top left'], ['top-center', 'Top centre'], ['top-right', 'Top right'], ['middle-left', 'Middle left'], ['middle-right', 'Middle right'], ['bottom-left', 'Bottom left'], ['bottom-center', 'Bottom centre'], ['bottom-right', 'Bottom right']]],
                             ['BadgeShowRating', 'bool', 'Badges show the star rating'],
                             ['BadgeShowLoved', 'bool', 'Badges show the "loved" heart'],
                             ['BadgeShowWatchlist', 'bool', 'Badges mark films on the watchlist'],
@@ -274,9 +274,18 @@
                         td5.appendChild(connect);
                         if (a.connected) {
                             td5.appendChild(button('Sync now', function () { api('admin/accounts/' + u.userId + '/sync', 'POST').then(function () { setTimeout(loadAccounts, 600); }).catch(alertErr); }));
-                            td5.appendChild(button('Disconnect', function () {
-                                if (window.confirm('Disconnect ' + u.userName + '’s Letterboxd account and delete its cached data?')) { api('admin/accounts/' + u.userId, 'DELETE').then(loadAccounts).catch(alertErr); }
-                            }, 'danger'));
+                            var armed = false, armTimer = null;
+                            var disc = button('Disconnect', function () {
+                                // Two-step confirmation without window.confirm (some browsers suppress dialogs).
+                                if (!armed) {
+                                    armed = true; disc.textContent = 'Click again to confirm';
+                                    armTimer = setTimeout(function () { armed = false; disc.textContent = 'Disconnect'; }, 4000);
+                                    return;
+                                }
+                                clearTimeout(armTimer); disc.disabled = true; disc.textContent = 'Disconnecting…';
+                                api('admin/accounts/' + u.userId, 'DELETE').then(loadAccounts).catch(function (e) { disc.disabled = false; disc.textContent = 'Disconnect'; armed = false; alertErr(e); });
+                            }, 'danger');
+                            td5.appendChild(disc);
                         }
                         td5.appendChild(formHost);
                         tr.appendChild(td5);

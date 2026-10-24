@@ -51,6 +51,17 @@ public class ParserTests
     }
 
     [Fact]
+    public void FilmId_FallsBackToPosterUidAndInlineJson()
+    {
+        var a = LetterboxdParser.ParseFilmIds("<div data-postered-identifier='{\"lid\":\"abc\",\"uid\":\"film:4242\"}'></div>", null, "heat");
+        Assert.Equal("4242", a.FilmId);
+        var b = LetterboxdParser.ParseFilmIds("<script>var x = {\"filmId\": 99};</script>", null, "heat");
+        Assert.Equal("99", b.FilmId);
+        var c = LetterboxdParser.ParseFilmIds("<html>nothing here</html>", null, "heat");
+        Assert.Null(c.FilmId);
+    }
+
+    [Fact]
     public void FilmIds_ComeFromPosterJsonAndFilmIdAttribute()
     {
         var ids = LetterboxdParser.ParseFilmIds("<div data-postered-identifier='{\"lid\":\"abc\"}'></div><div data-film-id=\"77\"></div>", null, "heat");

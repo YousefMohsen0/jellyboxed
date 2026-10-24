@@ -60,7 +60,7 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets the maximum number of friends shown per film.</summary>
     public int MaxFriendsShown { get; set; } = 40;
 
-    /// <summary>Gets or sets where the rating badge is drawn on a poster: top-left, top-right, bottom-left or bottom-right.</summary>
+    /// <summary>Gets or sets where the rating badge is drawn on a poster: top/middle/bottom combined with left/center/right, e.g. "bottom-center".</summary>
     public string BadgePosition { get; set; } = "top-left";
 
     /// <summary>Gets or sets a value indicating whether the star rating is shown on badges.</summary>

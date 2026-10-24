@@ -33,7 +33,6 @@
     var badgesVersion = 0;
     var badgesLoadedAt = 0;
     var mountedFor = null; // item id the panel is currently shown for
-    var mounting = false;
     var promptShownFor = null;
 
     // ------------------------------------------------------------------ tiny helpers
@@ -649,8 +648,10 @@
         scheduleScan();
     }
 
+    var mountSeq = 0;
+
     function mountPanel(itemId) {
-        if (mounting || !me) {
+        if (!me) {
             return;
         }
         var f = me.features || {};
@@ -663,23 +664,31 @@
             return; // the page is still being built; the DOM observer will call us again
         }
 
-        mounting = true;
+        // A newer mount supersedes older ones, so a slow answer can never leave a "Loading…" panel behind.
+        removePanel();
+        var token = ++mountSeq;
         mountedFor = itemId;
         var panel = h('section', { class: 'jbx-panel', 'data-item': itemId, 'aria-label': 'Letterboxd' });
         anchor.appendChild(panel);
         panel.appendChild(h('div', { class: 'jbx-skeleton', text: 'Loading Letterboxd…' }));
 
+        function stale() {
+            if (token === mountSeq && panel.isConnected) { return false; }
+            if (panel.parentNode) { panel.parentNode.removeChild(panel); }
+            return true;
+        }
+
         api('item/' + itemId).then(function (info) {
-            if (mountedFor !== itemId || !panel.isConnected) { return; }
+            if (stale()) { return; }
             if (!info || !info.isMovie || !info.hasTmdb) {
                 panel.parentNode.removeChild(panel);
                 return;
             }
             renderPanel(panel, itemId, info);
         }).catch(function (e) {
-            if (mountedFor !== itemId || !panel.isConnected) { return; }
+            if (stale()) { return; }
             renderPanelError(panel, itemId, e);
-        }).then(function () { mounting = false; });
+        });
     }
 
     function renderPanelError(panel, itemId, e) {
@@ -823,7 +832,7 @@
         if (!me || !me.features || !me.features.badges || !me.account || !me.account.connected) {
             return Promise.resolve();
         }
-        if (!force && Date.now() - badgesLoadedAt < 5 * 60 * 1000) {
+        if (!force && Date.now() - badgesLoadedAt < 60 * 1000) {
             return Promise.resolve();
         }
         badgesLoadedAt = Date.now();
@@ -839,7 +848,7 @@
 
     function badgeNode(entry) {
         var ui = (me && me.ui) || {};
-        var pos = /^(top|bottom)-(left|right)$/.test(ui.badgePosition || '') ? ui.badgePosition : 'top-left';
+        var pos = /^(top|bottom)-(left|center|right)$|^middle-(left|right)$/.test(ui.badgePosition || '') ? ui.badgePosition : 'top-left';
         var node = h('div', { class: 'jbx-badge jbx-pos-' + pos, 'aria-hidden': 'true' });
         var any = false;
         if (entry.r && ui.badgeRating !== false) { node.appendChild(h('span', { text: '★' + entry.r })); any = true; }
@@ -860,8 +869,7 @@
             var card = cards[i];
             var id = normId(card.getAttribute('data-id'));
             if (!id) { continue; }
-            var container = card.querySelector('.cardImageContainer, .cardBox, .cardScalable, [class*="image" i]');
-            if (!container) { continue; }
+            var container = card.querySelector('.cardImageContainer, .cardScalable, .cardBox, [class*="image" i]') || card;
             // Jellyfin recycles card elements: repaint when the item or the data changed.
             var key = id + ':' + stamp;
             if (card.getAttribute('data-jbx') === key) { continue; }
@@ -1014,6 +1022,7 @@
 
     function onNavigate() {
         mountedFor = null;
+        loadBadges(false);
         scheduleScan();
         setTimeout(checkPending, 1500);
     }
@@ -1076,6 +1085,23 @@
     // Test / debugging hooks.
     J.reload = function () { me = null; badges = {}; badgesEtag = null; remount(); tick(); };
     J.state = function () { return { me: me, badges: badges }; };
+    J.diagnose = function () {
+        var sel = (me && me.ui && me.ui.cardSelector) || '[data-id]';
+        var cards = document.querySelectorAll(sel);
+        var withId = 0, painted = 0, inBadges = 0;
+        for (var i = 0; i < cards.length; i++) {
+            var id = normId(cards[i].getAttribute('data-id'));
+            if (id) { withId++; if (badges[id]) { inBadges++; } }
+            if (cards[i].querySelector('.jbx-badge')) { painted++; }
+        }
+        var first = cards[0];
+        return {
+            version: VERSION, signedIn: signedIn(), connected: !!(me && me.account && me.account.connected),
+            badgesEnabled: !!(me && me.features && me.features.badges), badgeItems: Object.keys(badges).length,
+            selector: sel, cards: cards.length, cardsWithId: withId, cardsWithBadgeData: inBadges, cardsPainted: painted,
+            firstCard: first ? first.className + ' | ' + first.innerHTML.slice(0, 200) : null
+        };
+    };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', start);

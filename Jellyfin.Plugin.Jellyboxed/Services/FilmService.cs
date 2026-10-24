@@ -348,7 +348,7 @@ public sealed class FilmService
     /// <summary>Joins the user's Letterboxd data with the movies in the library. Cached until either side changes.</summary>
     public BadgeSet BuildBadges(LetterboxdAccount account)
     {
-        var stamp = $"{_jellyfin.IndexStamp}-{_states.Version(account.UserId)}";
+        var stamp = $"{_jellyfin.IndexStamp}-{_states.Version(account.UserId)}-{_slugs.Stamp}";
         if (_badgeCache.TryGetValue(account.UserId, out var hit) && hit.Key == stamp)
         {
             return hit.Set;
