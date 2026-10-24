@@ -1,0 +1,68 @@
+name: Release
+
+# Push a tag like v1.0.0 to publish a release:
+#   git tag v1.0.0 && git push origin v1.0.0
+# This builds the plugin, attaches the zip to a GitHub release and adds it to manifest.json,
+# which is what makes it installable from Jellyfin's plugin catalogue.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Work out the version
+        id: ver
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          SHORT="${TAG#v}"
+          if ! [[ "$SHORT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "Tag must look like v1.2.3"; exit 1; fi
+          echo "short=$SHORT" >> "$GITHUB_OUTPUT"
+          echo "full=$SHORT.0" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        run: dotnet test Jellyboxed.sln -c Release
+
+      - name: Publish plugin
+        run: dotnet publish Jellyfin.Plugin.Jellyboxed/Jellyfin.Plugin.Jellyboxed.csproj -c Release -o out -p:Version=${{ steps.ver.outputs.full }}
+
+      - name: Start from the manifest on main (it holds all earlier releases)
+        run: |
+          git fetch origin main
+          git show origin/main:manifest.json > manifest.json
+
+      - name: Package and update manifest
+        run: python3 scripts/package.py --dll out/Jellyfin.Plugin.Jellyboxed.dll --version ${{ steps.ver.outputs.full }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" "dist/jellyboxed_${{ steps.ver.outputs.full }}.zip" \
+            --title "Jellyboxed ${{ steps.ver.outputs.short }}" \
+            --notes-file <(python3 -c "import json;print(json.load(open('manifest.json'))[0]['versions'][0]['changelog'])")
+
+      - name: Commit manifest to the default branch
+        run: |
+          cp manifest.json /tmp/manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -- manifest.json
+          git checkout -B main origin/main
+          cp /tmp/manifest.json manifest.json
+          git add manifest.json
+          git commit -m "chore: add ${GITHUB_REF_NAME} to plugin manifest" || echo "nothing to commit"
+          git push origin main

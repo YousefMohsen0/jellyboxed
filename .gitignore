@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.idea/
+*.DotSettings.user
+TestResults/
+artifacts/
+
+# Packaging output
+dist/
+out/
+
+# Node (tooling only)
+node_modules/
+
+# Secrets and local state: never commit these
+.env
+*.env
+accounts.json
+state-*.json
+slugs.json
+*.bad
+
+# OS
+.DS_Store
+Thumbs.db

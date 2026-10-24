@@ -1,0 +1,39 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Jellyboxed.sln
+
+      - name: Build
+        run: dotnet build Jellyboxed.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Jellyboxed.sln -c Release --no-build --verbosity normal
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check browser script and settings page script
+        run: |
+          node --check Jellyfin.Plugin.Jellyboxed/Web/client.js
+          python3 - <<'PY'
+          import re
+          html = open("Jellyfin.Plugin.Jellyboxed/Configuration/configPage.html", encoding="utf-8").read()
+          open("/tmp/configPage.js", "w", encoding="utf-8").write(re.search(r'<script type="text/javascript">(.*?)</script>', html, re.S).group(1))
+          PY
+          node --check /tmp/configPage.js

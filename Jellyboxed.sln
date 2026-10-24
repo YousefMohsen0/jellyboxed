@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jellyfin.Plugin.Jellyboxed", "Jellyfin.Plugin.Jellyboxed\Jellyfin.Plugin.Jellyboxed.csproj", "{83950DED-88CE-4EFB-8B13-CD48EB74315C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jellyfin.Plugin.Jellyboxed.Tests", "Jellyfin.Plugin.Jellyboxed.Tests\Jellyfin.Plugin.Jellyboxed.Tests.csproj", "{898DFBD9-8A20-4E87-8FB0-951DCE8D5497}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{83950DED-88CE-4EFB-8B13-CD48EB74315C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83950DED-88CE-4EFB-8B13-CD48EB74315C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83950DED-88CE-4EFB-8B13-CD48EB74315C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83950DED-88CE-4EFB-8B13-CD48EB74315C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{898DFBD9-8A20-4E87-8FB0-951DCE8D5497}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{898DFBD9-8A20-4E87-8FB0-951DCE8D5497}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{898DFBD9-8A20-4E87-8FB0-951DCE8D5497}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{898DFBD9-8A20-4E87-8FB0-951DCE8D5497}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

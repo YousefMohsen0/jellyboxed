@@ -1,0 +1,44 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! **Never paste cookies, passwords or API keys.** Remove personal data from logs.
+  - type: input
+    id: jellyfin
+    attributes:
+      label: Jellyfin version
+      placeholder: "12.0.0"
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Jellyboxed version
+      placeholder: "1.0.0.0"
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Browser / client and web layout (Modern or Legacy), theme
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Enable Debug logging in the plugin settings, reproduce, and paste the relevant lines.
+      render: text

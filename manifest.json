@@ -1,0 +1,11 @@
+[
+  {
+    "guid": "7b2f4a9e-3c61-4d58-9e0a-5f1c8d2b6a47",
+    "name": "Jellyboxed",
+    "description": "Letterboxd inside Jellyfin: your ratings on posters, friends' activity, log films after watching, and a synced watchlist.",
+    "overview": "Letterboxd integration for Jellyfin",
+    "owner": "YousefMohsen0",
+    "category": "General",
+    "versions": []
+  }
+]
