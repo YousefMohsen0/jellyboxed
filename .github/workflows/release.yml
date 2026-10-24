@@ -8,6 +8,15 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # Re-run for an existing tag (for example after fixing the workflow): Actions -> Release -> Run workflow.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release, e.g. v1.0.0"
+        required: true
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 permissions:
   contents: write
@@ -19,6 +28,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -27,7 +37,6 @@ jobs:
       - name: Work out the version
         id: ver
         run: |
-          TAG="${GITHUB_REF_NAME}"
           SHORT="${TAG#v}"
           if ! [[ "$SHORT" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "Tag must look like v1.2.3"; exit 1; fi
           echo "short=$SHORT" >> "$GITHUB_OUTPUT"
@@ -51,9 +60,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" "dist/jellyboxed_${{ steps.ver.outputs.full }}.zip" \
-            --title "Jellyboxed ${{ steps.ver.outputs.short }}" \
-            --notes-file <(python3 -c "import json;print(json.load(open('manifest.json'))[0]['versions'][0]['changelog'])")
+          ZIP="dist/jellyboxed_${{ steps.ver.outputs.full }}.zip"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # The release was created by hand: keep its notes, just attach (or replace) the zip.
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" \
+              --title "Jellyboxed ${{ steps.ver.outputs.short }}" \
+              --notes-file <(python3 -c "import json;print(json.load(open('manifest.json'))[0]['versions'][0]['changelog'])")
+          fi
 
       - name: Commit manifest to the default branch
         run: |
@@ -64,5 +79,5 @@ jobs:
           git checkout -B main origin/main
           cp /tmp/manifest.json manifest.json
           git add manifest.json
-          git commit -m "chore: add ${GITHUB_REF_NAME} to plugin manifest" || echo "nothing to commit"
+          git commit -m "chore: add ${TAG} to plugin manifest" || echo "nothing to commit"
           git push origin main
