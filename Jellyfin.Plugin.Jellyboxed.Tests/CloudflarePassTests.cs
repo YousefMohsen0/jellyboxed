@@ -63,4 +63,14 @@ public class CloudflarePassTests
         Assert.Null(pass);
         CloudflarePass.Reset();
     }
+
+    [Fact]
+    public async Task SolveAsync_SurvivesNonJsonAnswer()
+    {
+        CloudflarePass.Reset();
+        using var listener = Start("Internal Server Error", out var url);
+        var pass = await CloudflarePass.SolveAsync(url, 30, null, NullLogger.Instance, CancellationToken.None);
+        Assert.Null(pass);
+        CloudflarePass.Reset();
+    }
 }

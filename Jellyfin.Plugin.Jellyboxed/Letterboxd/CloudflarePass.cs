@@ -66,6 +66,7 @@ internal static class CloudflarePass
                 ["cmd"] = "request.get",
                 ["url"] = "https://letterboxd.com/",
                 ["maxTimeout"] = Math.Clamp(timeoutSeconds, 15, 120) * 1000,
+                ["max_timeout"] = Math.Clamp(timeoutSeconds, 15, 120), // Byparr spells it this way (seconds)
             };
 
             try
@@ -73,6 +74,18 @@ internal static class CloudflarePass
                 using var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
                 using var response = await Http.PostAsync(endpoint, content, ct).ConfigureAwait(false);
                 var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                if (!text.TrimStart().StartsWith('{'))
+                {
+                    // Not JSON at all, e.g. "Internal Server Error": the helper itself failed. Show what it said.
+                    var snippet = text.Length > 200 ? text[..200] : text;
+                    logger.LogWarning(
+                        "Jellyboxed: the solver at {Url} answered HTTP {Status} with {Body}. It failed while trying to open Letterboxd; check its own log (for example 'docker logs <container>').",
+                        endpoint,
+                        (int)response.StatusCode,
+                        string.IsNullOrWhiteSpace(snippet) ? "an empty body" : "\"" + snippet.Trim() + "\"");
+                    return _current;
+                }
+
                 var root = JsonNode.Parse(text);
                 if (root?["status"]?.GetValue<string>() != "ok")
                 {
