@@ -28,7 +28,6 @@ namespace Jellyfin.Plugin.Jellyboxed.Api;
 [Route("Jellyboxed")]
 public class JellyboxedController : ControllerBase
 {
-    private const string AuthPolicy = "DefaultAuthorization";
     private const string AdminPolicy = "RequiresElevation";
 
     private static readonly JsonSerializerOptions Out = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
@@ -186,7 +185,7 @@ public class JellyboxedController : ControllerBase
     // ====================================================================== current user
 
     [HttpGet("me")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public IActionResult Me()
     {
         var userId = CurrentUserId;
@@ -230,7 +229,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpPut("me/settings")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> SaveSettings()
     {
         var userId = CurrentUserId;
@@ -272,7 +271,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpPost("me/connect")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> Connect(CancellationToken ct)
     {
         var userId = CurrentUserId;
@@ -297,7 +296,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpPost("me/disconnect")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public IActionResult Disconnect()
     {
         DisconnectAccount(CurrentUserId);
@@ -305,11 +304,11 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpGet("me/sync")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public IActionResult SyncState() => Ok(_sync.GetStatus(CurrentUserId));
 
     [HttpPost("me/sync")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public IActionResult SyncNow()
     {
         var userId = CurrentUserId;
@@ -325,7 +324,7 @@ public class JellyboxedController : ControllerBase
     // ====================================================================== films
 
     [HttpGet("item/{itemId:guid}")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> ItemInfo(Guid itemId, CancellationToken ct)
     {
         var userId = CurrentUserId;
@@ -354,7 +353,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpGet("item/{itemId:guid}/friends")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> Friends(Guid itemId, CancellationToken ct)
     {
         if (!Config.EnableFriendsFeed)
@@ -392,7 +391,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpPost("item/{itemId:guid}/log")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> Log(Guid itemId, CancellationToken ct)
     {
         if (!Config.EnableLogging)
@@ -425,7 +424,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpPost("item/{itemId:guid}/watchlist")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> Watchlist(Guid itemId, CancellationToken ct)
     {
         if (!Config.EnableWatchlist)
@@ -454,7 +453,7 @@ public class JellyboxedController : ControllerBase
     // ====================================================================== library badges & prompts
 
     [HttpGet("badges")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public IActionResult Badges()
     {
         var account = _accounts.Get(CurrentUserId);
@@ -475,7 +474,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpGet("pending")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public IActionResult Pending()
     {
         var account = _accounts.Get(CurrentUserId);
@@ -491,7 +490,7 @@ public class JellyboxedController : ControllerBase
     }
 
     [HttpPost("pending/{itemId:guid}/dismiss")]
-    [Authorize(Policy = AuthPolicy)]
+    [Authorize]
     public async Task<IActionResult> DismissPrompt(Guid itemId)
     {
         var input = await ReadBodyAsync<DismissInput>().ConfigureAwait(false);
