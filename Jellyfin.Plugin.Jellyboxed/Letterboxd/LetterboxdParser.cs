@@ -193,7 +193,30 @@ public static class LetterboxdParser
             ?? doc.SelectOne("[data-film-id]");
         var filmId = filmEl?.Attr("data-film-id");
 
+        // Letterboxd keeps moving this around (and lazy-loads posters), so fall back to the other places it appears.
+        if (string.IsNullOrWhiteSpace(filmId))
+        {
+            var posterJson = doc.SelectOne("[data-postered-identifier]")?.Attr("data-postered-identifier");
+            filmId = FirstGroup(posterJson, "\"uid\"\\s*:\\s*\"film:(\\d+)\"");
+        }
+
+        filmId ??= FirstGroup(html, "data-film-id=[\"'](\\d+)[\"']")
+            ?? FirstGroup(html, "\"filmId\"\\s*:\\s*\"?(\\d+)")
+            ?? FirstGroup(html, "[\"'&;]film:(\\d+)[\"'&;]")
+            ?? FirstGroup(html, "/film/(\\d+)/(?:add-to-watchlist|remove-from-watchlist|rating|like)");
+
         return (string.IsNullOrWhiteSpace(productionId) ? null : productionId, string.IsNullOrWhiteSpace(filmId) ? null : filmId);
+    }
+
+    private static string? FirstGroup(string? input, string pattern)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return null;
+        }
+
+        var m = System.Text.RegularExpressions.Regex.Match(input, pattern);
+        return m.Success ? m.Groups[1].Value : null;
     }
 
     public static bool ParseLoved(string html)

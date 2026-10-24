@@ -504,45 +504,76 @@ public sealed class LetterboxdClient : IDisposable
     /// <summary>Adds or removes a film from the watchlist. Requires a signed-in session.</summary>
     public async Task SetWatchlistAsync(string slug, bool add, CancellationToken ct)
     {
-        var (_, filmId) = await GetFilmIdsAsync(slug, ct).ConfigureAwait(false);
-        if (filmId is null)
+        // The film page also tells us Letterboxd's numeric id, which some endpoints want. It is optional:
+        // Letterboxd accepts the slug in the action URL, so a missing id must not block the change.
+        string? filmId = null;
+        try
         {
-            throw new LetterboxdException(LetterboxdErrorKind.Failed, "Could not find Letterboxd's film id; the watchlist was not changed.");
+            filmId = (await GetFilmIdsAsync(slug, ct).ConfigureAwait(false)).FilmId;
+        }
+        catch (LetterboxdException ex) when (ex.Kind == LetterboxdErrorKind.NotFound)
+        {
+            throw;
+        }
+        catch (LetterboxdException ex) when (ex.Kind != LetterboxdErrorKind.Blocked)
+        {
+            _logger.LogDebug(ex, "Jellyboxed: could not read film ids for {Slug}", slug);
         }
 
         var action = add ? "add-to-watchlist" : "remove-from-watchlist";
+        var targets = new List<string> { $"{Base}/film/{slug}/{action}/" };
+        if (filmId is not null)
+        {
+            targets.Add($"{Base}/film/{filmId}/{action}/");
+        }
+
+        HttpResult? last = null;
         for (var attempt = 0; attempt < 2; attempt++)
         {
             var csrf = await GetCsrfAsync(attempt > 0, ct).ConfigureAwait(false);
-            using var form = new FormUrlEncodedContent(new Dictionary<string, string> { ["__csrf"] = csrf });
-            var res = await SendAsync(HttpMethod.Post, $"{Base}/film/{filmId}/{action}/", form, WriteHeaders($"{Base}/film/{slug}/", csrf), ct)
-                .ConfigureAwait(false);
-
-            try
+            var sessionProblem = false;
+            foreach (var url in targets)
             {
-                if (JsonNode.Parse(res.Body)?["result"]?.GetValue<bool>() == true)
+                using var form = new FormUrlEncodedContent(new Dictionary<string, string> { ["__csrf"] = csrf });
+                var res = await SendAsync(HttpMethod.Post, url, form, WriteHeaders($"{Base}/film/{slug}/", csrf), ct).ConfigureAwait(false);
+                last = res;
+
+                try
                 {
-                    return;
+                    if (JsonNode.Parse(res.Body)?["result"]?.GetValue<bool>() == true)
+                    {
+                        return;
+                    }
                 }
-            }
-            catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
-            {
-                // Not JSON.
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+                {
+                    // Not JSON.
+                }
+
+                if (res.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                {
+                    sessionProblem = true;
+                    break;
+                }
+
+                _logger.LogDebug("Jellyboxed: watchlist {Action} via {Url} -> HTTP {Status}: {Body}", action, url, (int)res.Status, Truncate(res.Body, 200));
             }
 
-            if (res.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden && attempt == 0)
+            if (sessionProblem && attempt == 0)
             {
-                continue;
+                continue; // refresh the CSRF token and retry once
             }
 
-            if (res.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            if (sessionProblem)
             {
                 throw new LetterboxdException(LetterboxdErrorKind.NotSignedIn, "Your Letterboxd session has expired. Sign in again.");
             }
 
-            _logger.LogWarning("Jellyboxed: watchlist {Action} failed (HTTP {Status}): {Body}", action, (int)res.Status, Truncate(res.Body, 200));
-            throw new LetterboxdException(LetterboxdErrorKind.Failed, $"Letterboxd rejected the watchlist change (HTTP {(int)res.Status}).");
+            break;
         }
+
+        _logger.LogWarning("Jellyboxed: watchlist {Action} for {Slug} failed (last HTTP {Status}): {Body}", action, slug, last is null ? 0 : (int)last.Status, Truncate(last?.Body ?? string.Empty, 200));
+        throw new LetterboxdException(LetterboxdErrorKind.Failed, $"Letterboxd did not accept the watchlist change (HTTP {(last is null ? 0 : (int)last.Status)}). Turn on Debug logging for details.");
     }
 
     // ------------------------------------------------------------------ plumbing
