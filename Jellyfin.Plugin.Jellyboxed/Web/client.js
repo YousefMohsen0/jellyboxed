@@ -16,7 +16,12 @@
         return;
     }
 
-    var VERSION = '1.0.0';
+    var VERSION = (function () {
+        try {
+            var m = /[?&]v=([\d.]+)/.exec((document.currentScript && document.currentScript.src) || '');
+            return m ? m[1] : 'dev';
+        } catch (e) { return 'dev'; }
+    }());
     var J = (window.__jellyboxed = { version: VERSION });
     var NS_SVG = 'http://www.w3.org/2000/svg';
     var HEART_PATH = 'M12 21s-6.7-4.35-9.3-8.2C1 10.1 1.6 6.6 4.6 5.2 6.9 4.1 9.4 5 12 8c2.6-3 5.1-3.9 7.4-2.8 3 1.4 3.6 4.9 1.9 7.6C18.7 16.65 12 21 12 21z';
@@ -707,49 +712,65 @@
         var acct = me.account || {};
         var mine = info.mine;
         panel.textContent = '';
+        var card = h('div', { class: 'jbx-card' });
+        panel.appendChild(card);
 
         var head = h('div', { class: 'jbx-head' }, h('span', { class: 'jbx-title', text: 'Letterboxd' }));
         var tools = h('span', { class: 'jbx-tools' });
         if (mine && mine.url) {
-            tools.appendChild(h('a', { class: 'jbx-link', href: mine.url, target: '_blank', rel: 'noopener noreferrer', text: 'Open' }));
+            tools.appendChild(h('a', { class: 'jbx-tool', href: mine.url, target: '_blank', rel: 'noopener noreferrer', title: 'Open on Letterboxd', text: 'Open ↗' }));
         }
-        tools.appendChild(h('button', { class: 'jbx-link jbx-linkbtn', type: 'button', text: acct.connected ? 'Account' : 'Connect', onclick: function () {
+        tools.appendChild(h('button', { class: 'jbx-tool', type: 'button', text: acct.connected ? 'Account' : 'Connect', onclick: function () {
             if (acct.connected) { openAccountModal(); } else { openConnectModal(remount); }
         } }));
         head.appendChild(tools);
-        panel.appendChild(head);
+        card.appendChild(head);
 
         if (!acct.connected || !mine) {
+            var empty = h('div', { class: 'jbx-empty' });
             if (f.selfConnect !== false) {
-                panel.appendChild(h('p', { class: 'jbx-muted', text: 'Connect your Letterboxd account to see your ratings, your watchlist and what your friends think of this film.' }));
-                panel.appendChild(h('button', { class: 'jbx-btn jbx-primary jbx-small', type: 'button', text: 'Connect Letterboxd', onclick: function () { openConnectModal(remount); } }));
+                empty.appendChild(h('p', { class: 'jbx-empty-text', text: 'Connect your Letterboxd account to see your rating, your watchlist and what your friends thought of this film.' }));
+                empty.appendChild(h('button', { class: 'jbx-btn jbx-primary', type: 'button', text: 'Connect Letterboxd', onclick: function () { openConnectModal(remount); } }));
             } else {
-                panel.appendChild(h('p', { class: 'jbx-muted', text: 'Ask your server administrator to connect your Letterboxd account.' }));
+                empty.appendChild(h('p', { class: 'jbx-empty-text', text: 'Ask your server administrator to connect your Letterboxd account.' }));
             }
+            card.appendChild(empty);
             return;
         }
 
         var canWrite = mine.level === 'session';
 
         if (acct.lastError && !canWrite && acct.authMode !== 'none') {
-            panel.appendChild(h('p', { class: 'jbx-warn', text: 'Your Letterboxd session expired. Sign in again to log films and see friends.' }));
+            card.appendChild(h('p', { class: 'jbx-warn', text: 'Your Letterboxd session expired. Sign in again to log films and see friends.' }));
         }
+
+        var body = h('div', { class: 'jbx-body' });
+        card.appendChild(body);
 
         // --- my rating
         if (f.myRating !== false) {
-            var row = h('div', { class: 'jbx-mine' }, h('span', { class: 'jbx-label-s', text: 'My Letterboxd' }));
-            row.appendChild(h('span', { class: 'jbx-accent jbx-stars-text', text: stars(mine.rating) || (mine.synced === false ? '…' : '—') }));
-            if (mine.loved) { row.appendChild(svg(HEART_PATH, 17, '#ff3b5c', 'jbx-heart-inline')); }
-            if (mine.stale) { row.appendChild(h('span', { class: 'jbx-muted jbx-s', title: 'Refreshing from Letterboxd', text: '↻' })); }
-            if (canWrite && f.logging !== false) {
-                row.appendChild(h('button', { class: 'jbx-link jbx-linkbtn', type: 'button', text: mine.rated ? 'Edit' : 'Rate this film', onclick: function () {
-                    openLogModal(itemId, info.name, mine, function () { remount(); });
-                } }));
-            }
-            panel.appendChild(row);
+            var rating = h('div', { class: 'jbx-block' }, h('div', { class: 'jbx-label-s', text: 'Your rating' }));
+            var line = h('div', { class: 'jbx-rating-line' });
+            var starsText = stars(mine.rating);
+            line.appendChild(h('span', { class: 'jbx-stars-text' + (starsText ? ' jbx-accent' : ' jbx-none'), text: starsText || (mine.synced === false ? 'Syncing…' : 'Not rated') }));
+            if (mine.loved) { line.appendChild(svg(HEART_PATH, 20, '#ff3b5c', 'jbx-heart-inline')); }
+            if (mine.stale) { line.appendChild(h('span', { class: 'jbx-muted jbx-s', title: 'Refreshing from Letterboxd', text: '↻' })); }
+            rating.appendChild(line);
+            body.appendChild(rating);
         }
 
-        // --- watchlist
+        // --- actions
+        var actions = h('div', { class: 'jbx-actions-row' });
+        if (canWrite && f.logging !== false && f.myRating !== false) {
+            actions.appendChild(h('button', { class: 'jbx-btn jbx-primary', type: 'button', text: mine.rated ? 'Edit rating' : 'Rate & log', onclick: function () {
+                openLogModal(itemId, info.name, mine, function () { remount(); });
+            } }));
+        } else if (canWrite && f.logging !== false) {
+            actions.appendChild(h('button', { class: 'jbx-btn jbx-primary', type: 'button', text: 'Log film', onclick: function () {
+                openLogModal(itemId, info.name, mine, function () { remount(); });
+            } }));
+        }
+
         if (f.watchlist !== false && (canWrite || mine.inWatchlist)) {
             var on = !!mine.inWatchlist;
             var btn = h('button', { type: 'button', class: 'jbx-chip' + (on ? ' jbx-on' : ''), 'aria-pressed': on ? 'true' : 'false' });
@@ -774,16 +795,17 @@
             } else {
                 btn.disabled = true;
             }
-            panel.appendChild(h('div', { class: 'jbx-wl' }, h('span', { class: 'jbx-label-s', text: 'Watchlist' }), btn));
+            actions.appendChild(btn);
         }
+        if (actions.childNodes.length) { body.appendChild(actions); }
 
         // --- friends
         if (f.friends !== false && canWrite) {
             var box = h('div', { class: 'jbx-friends' }, h('div', { class: 'jbx-muted jbx-s', text: 'Loading friends…' }));
-            panel.appendChild(box);
+            card.appendChild(box);
             loadFriends(box, itemId);
         } else if (f.friends !== false && !canWrite) {
-            panel.appendChild(h('p', { class: 'jbx-muted jbx-s', text: 'Sign in to Letterboxd (Account → Sign in for full access) to log films and see your friends’ activity.' }));
+            card.appendChild(h('p', { class: 'jbx-muted jbx-s jbx-note', text: 'Sign in to Letterboxd (Account → Sign in for full access) to log films and see your friends’ activity.' }));
         }
     }
 
@@ -794,8 +816,8 @@
             var list = (res && res.friends) || [];
             if (!list.length) { box.parentNode.removeChild(box); return; }
             box.appendChild(h('div', { class: 'jbx-friends-head' },
-                h('span', { class: 'jbx-label-s', text: 'Activity from friends' }),
-                h('span', { class: 'jbx-muted jbx-s', text: list.length + ' watched' })));
+                h('span', { class: 'jbx-label-s', text: 'Friends who watched' }),
+                h('span', { class: 'jbx-count', text: String(list.length) })));
             var strip = h('div', { class: 'jbx-strip' });
             list.forEach(function (fr) {
                 var hasReview = !!(fr.review && fr.review.trim());
@@ -806,7 +828,8 @@
                     h('span', { class: 'jbx-avatar-wrap' },
                         avatarSrc ? h('img', { class: 'jbx-avatar', src: avatarSrc, alt: '', loading: 'lazy' }) : h('span', { class: 'jbx-avatar jbx-avatar-ph', text: (fr.name || '?').charAt(0).toUpperCase() }),
                         hasReview ? h('span', { class: 'jbx-badge-dot', title: 'Has a review' }) : null),
-                    h('span', { class: 'jbx-accent jbx-s', text: fr.rating || '' }));
+                    h('span', { class: 'jbx-friend-name', text: fr.name || '' }),
+                    h('span', { class: 'jbx-accent jbx-friend-stars', text: fr.rating || '' }));
                 strip.appendChild(item);
             });
             box.appendChild(strip);
@@ -851,7 +874,7 @@
         var pos = /^(top|bottom)-(left|center|right)$|^middle-(left|right)$/.test(ui.badgePosition || '') ? ui.badgePosition : 'top-left';
         var node = h('div', { class: 'jbx-badge jbx-pos-' + pos, 'aria-hidden': 'true' });
         var any = false;
-        if (entry.r && ui.badgeRating !== false) { node.appendChild(h('span', { text: '★' + entry.r })); any = true; }
+        if (entry.r && ui.badgeRating !== false) { node.appendChild(svg(STAR_PATH, 11, 'currentColor', 'jbx-badge-star')); node.appendChild(h('span', { text: String(entry.r) })); any = true; }
         if (entry.l && ui.badgeLoved !== false) { node.appendChild(svg(HEART_PATH, 12, '#ff3b5c')); any = true; }
         if (entry.w && ui.badgeWatchlist !== false) { node.appendChild(svg(BOOKMARK_PATH, 11, '#e0a030')); any = true; }
         return any ? node : null;
