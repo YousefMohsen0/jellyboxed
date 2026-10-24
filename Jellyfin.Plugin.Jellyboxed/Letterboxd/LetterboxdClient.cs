@@ -143,6 +143,14 @@ public sealed class LetterboxdClient : IDisposable
     public async Task<bool> IsSignedInAsync(CancellationToken ct)
     {
         var res = await GetAsync(Base + "/", ct).ConfigureAwait(false);
+        if (res.Status is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable)
+        {
+            // Not "bad cookies": Letterboxd/Cloudflare refused this server. Say so, so people do not re-copy cookies in vain.
+            throw new LetterboxdException(
+                LetterboxdErrorKind.Blocked,
+                "Letterboxd's bot check is blocking this server, so the cookies could not be checked. The cf_clearance cookie only works from the same internet connection and with the same User-Agent as the browser it was copied from (set Advanced > User-Agent to your browser's).");
+        }
+
         if (!res.Ok)
         {
             return false;
