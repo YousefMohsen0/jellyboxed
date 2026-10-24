@@ -561,6 +561,8 @@ public class JellyboxedController : ControllerBase
             until = blocked ? until : (DateTimeOffset?)null,
             knownFilms = _slugs.Count,
             libraryMovies = _jellyfin.GetMovies().Count,
+            flareSolverr = !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl),
+            passMinutesAgo = CloudflarePass.Current is { } pass ? (int?)Math.Max(0, (int)(DateTimeOffset.UtcNow - pass.ObtainedAt).TotalMinutes) : null,
         });
     }
 
@@ -569,6 +571,7 @@ public class JellyboxedController : ControllerBase
     public IActionResult AdminResume()
     {
         _gate.Reset();
+        CloudflarePass.Reset();
         return Ok(new { ok = true });
     }
 
@@ -577,6 +580,7 @@ public class JellyboxedController : ControllerBase
     public IActionResult AdminClearCache()
     {
         _films.ClearFriendsCache();
+        CloudflarePass.Reset();
         _slugs.Clear();
         _jellyfin.InvalidateIndex();
         foreach (var account in _accounts.All())

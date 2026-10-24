@@ -120,6 +120,7 @@
                             ['DetailPageSelector', 'text', 'Where to place the film panel (CSS selector)', 'Tried before the built-in guesses. Example: .detailPagePrimaryContainer'],
                             ['CardSelector', 'text', 'Which elements are library poster cards (CSS selector)', 'Must match elements that carry a data-id attribute. Default: [data-id]'],
                             ['UserAgent', 'text', 'Custom User-Agent for Letterboxd requests', 'Leave empty for the built-in browser-like value.'],
+                            ['FlareSolverrUrl', 'text', 'FlareSolverr address (optional)', 'Fixes Letterboxd bot checks automatically. Example: http://192.168.1.10:8191 (see the README). Leave empty to turn off.'],
                             ['DebugLogging', 'bool', 'Verbose logging (server log and browser console)']
                         ]}
                     ];
@@ -224,6 +225,7 @@
                             if (s.blocked) {
                                 host.appendChild(banner('warn', 'Letterboxd requests are paused: ' + (s.reason || 'backing off') + '. Resumes at ' + new Date(s.until).toLocaleTimeString() + '.'));
                             }
+                            if (s.flareSolverr) { host.appendChild(banner('', 'FlareSolverr is configured' + (s.passMinutesAgo === null || s.passMinutesAgo === undefined ? ': no bot check has needed it yet.' : ': last pass obtained ' + s.passMinutesAgo + ' min ago.'))); }
                             host.appendChild(banner('', 'Plugin version ' + s.version + ' • ' + s.libraryMovies + ' movies with a TMDB id in the library • ' + s.knownFilms + ' films matched with Letterboxd.'));
                         }).catch(function () { host.textContent = ''; });
                     }

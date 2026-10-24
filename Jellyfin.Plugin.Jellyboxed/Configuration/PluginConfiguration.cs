@@ -111,4 +111,13 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>Gets or sets a value indicating whether verbose logging and browser-console output is enabled.</summary>
     public bool DebugLogging { get; set; }
+
+    /// <summary>
+    /// Gets or sets the address of a FlareSolverr instance (for example http://192.168.1.10:8191). When Letterboxd shows a
+    /// Cloudflare bot check to this server, a fresh pass is requested from it automatically. Leave empty to disable.
+    /// </summary>
+    public string FlareSolverrUrl { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets how long (seconds) FlareSolverr may take to solve a bot check.</summary>
+    public int FlareSolverrTimeoutSeconds { get; set; } = 60;
 }

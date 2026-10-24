@@ -53,6 +53,21 @@ Users connect from any film page (**Connect Letterboxd**). Administrators can al
 
 After connecting, Jellyboxed does a first sync in the background (a few minutes for big libraries). Badges appear gradually as films are matched.
 
+### If Letterboxd shows a "bot check"
+
+Letterboxd sits behind Cloudflare, which sometimes blocks servers. Pasted `cf_clearance` cookies can help but expire. The reliable fix is [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr), a small helper that uses a real browser to get past the check. It is optional and only used when a bot check actually appears.
+
+1. Run it (Docker):
+
+   ```bash
+   docker run -d --name flaresolverr -p 8191:8191 --restart unless-stopped ghcr.io/flaresolverr/flaresolverr:latest
+   ```
+
+2. In **Dashboard → Plugins → Jellyboxed → Advanced**, set **FlareSolverr address** to `http://<host running it>:8191` and save.
+3. Click **Resume Letterboxd requests now**.
+
+Jellyboxed then asks FlareSolverr for a fresh pass whenever Letterboxd challenges it, and uses that pass (and the matching browser identity) for its own requests. FlareSolverr cannot solve every challenge Cloudflare invents, so this is best effort.
+
 ## Settings (administrators)
 
 **Dashboard → Plugins → Jellyboxed**
@@ -90,6 +105,7 @@ Each user also has a small **Account** dialog (on any film page) with personal o
 | Posters have no badges | Cards are found with `[data-id]`; set **Advanced → Which elements are library poster cards** if your theme differs. Also check the Accounts table: the first sync may still be matching films. |
 | "Letterboxd requests are paused" | Letterboxd rate-limited or showed a bot check to your server. Wait it out, or use *Resume* on the settings page. Lower the request speed in settings if it keeps happening. |
 | Sign-in says it needs a captcha | Use the **Cookies** option instead. |
+| Constant "bot check" messages | Set up [FlareSolverr](#if-letterboxd-shows-a-bot-check), and set **Advanced → User-Agent** to your browser's if you paste cookies. |
 | "Your session has expired" | Sign in again from the Account dialog. |
 | A film cannot be matched | It has no TMDB id in Jellyfin, or Letterboxd does not know it. Refresh its metadata in Jellyfin. |
 | Something else | Turn on **Debug logging**, reproduce, and open an [issue](https://github.com/YousefMohsen0/jellyboxed/issues) with the log (remove personal data). |

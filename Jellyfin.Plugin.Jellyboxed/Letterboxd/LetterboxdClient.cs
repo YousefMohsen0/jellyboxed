@@ -664,54 +664,82 @@ public sealed class LetterboxdClient : IDisposable
     {
         using var slot = await _gate.EnterAsync(ct).ConfigureAwait(false);
 
-        using var request = new HttpRequestMessage(method, url) { Content = content };
-        var ua = string.IsNullOrWhiteSpace(Config.UserAgent) ? DefaultUserAgent : Config.UserAgent;
-        request.Headers.TryAddWithoutValidation("User-Agent", ua);
-        request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
-        request.Headers.TryAddWithoutValidation("Accept-Language", "en-US,en;q=0.5");
-        request.Headers.TryAddWithoutValidation("Referer", Base + "/");
-        if (method != HttpMethod.Get)
+        // At most two tries: if Cloudflare shows a bot check and a FlareSolverr helper is configured, get a fresh
+        // pass from it and try once more before telling the rest of the plugin to back off.
+        for (var attempt = 0; ; attempt++)
         {
-            request.Headers.TryAddWithoutValidation("Origin", Base);
-        }
-
-        if (headers is not null)
-        {
-            foreach (var (k, v) in headers)
+            var pass = CloudflarePass.Current;
+            if (pass is not null)
             {
-                request.Headers.Remove(k);
-                request.Headers.TryAddWithoutValidation(k, v);
-            }
-        }
-
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(Config.RequestTimeoutSeconds, 5, 120)));
-
-        try
-        {
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token).ConfigureAwait(false);
-            var body = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
-            var botCheck = response.StatusCode == HttpStatusCode.Forbidden
-                && (body.Contains("Just a moment", StringComparison.OrdinalIgnoreCase) || body.Contains("cf-chl", StringComparison.OrdinalIgnoreCase)
-                    || response.Headers.Server.ToString().Contains("cloudflare", StringComparison.OrdinalIgnoreCase));
-            var retryAfter = response.Headers.RetryAfter?.Delta
-                ?? (response.Headers.RetryAfter?.Date is { } d ? d - DateTimeOffset.UtcNow : null);
-            _gate.Report(response.StatusCode, retryAfter, botCheck);
-
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug("Jellyboxed: {Method} {Url} -> {Status}", method, url, (int)response.StatusCode);
+                try
+                {
+                    _cookies.Add(BaseUri, new Cookie("cf_clearance", pass.Clearance, "/", "letterboxd.com"));
+                }
+                catch (CookieException)
+                {
+                    // Ignore an unusable value; the request will simply be challenged again.
+                }
             }
 
-            return new HttpResult(response.StatusCode, body, response.RequestMessage?.RequestUri ?? new Uri(url), response.Headers);
-        }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        {
-            throw new LetterboxdException(LetterboxdErrorKind.Failed, "Letterboxd took too long to respond.");
-        }
-        catch (HttpRequestException ex)
-        {
-            throw new LetterboxdException(LetterboxdErrorKind.Failed, "Could not reach Letterboxd: " + ex.Message);
+            using var request = new HttpRequestMessage(method, url) { Content = content };
+            var ua = pass?.UserAgent ?? (string.IsNullOrWhiteSpace(Config.UserAgent) ? DefaultUserAgent : Config.UserAgent);
+            request.Headers.TryAddWithoutValidation("User-Agent", ua);
+            request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+            request.Headers.TryAddWithoutValidation("Accept-Language", "en-US,en;q=0.5");
+            request.Headers.TryAddWithoutValidation("Referer", Base + "/");
+            if (method != HttpMethod.Get)
+            {
+                request.Headers.TryAddWithoutValidation("Origin", Base);
+            }
+
+            if (headers is not null)
+            {
+                foreach (var (k, v) in headers)
+                {
+                    request.Headers.Remove(k);
+                    request.Headers.TryAddWithoutValidation(k, v);
+                }
+            }
+
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(Config.RequestTimeoutSeconds, 5, 120)));
+
+            try
+            {
+                using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeout.Token).ConfigureAwait(false);
+                var body = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+                var botCheck = response.StatusCode == HttpStatusCode.Forbidden
+                    && (body.Contains("Just a moment", StringComparison.OrdinalIgnoreCase) || body.Contains("cf-chl", StringComparison.OrdinalIgnoreCase)
+                        || response.Headers.Server.ToString().Contains("cloudflare", StringComparison.OrdinalIgnoreCase));
+
+                if (botCheck && attempt == 0 && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl))
+                {
+                    var fresh = await CloudflarePass.SolveAsync(Config.FlareSolverrUrl, Config.FlareSolverrTimeoutSeconds, pass, _logger, ct).ConfigureAwait(false);
+                    if (fresh is not null && !ReferenceEquals(fresh, pass))
+                    {
+                        continue;
+                    }
+                }
+
+                var retryAfter = response.Headers.RetryAfter?.Delta
+                    ?? (response.Headers.RetryAfter?.Date is { } d ? d - DateTimeOffset.UtcNow : null);
+                _gate.Report(response.StatusCode, retryAfter, botCheck);
+
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Jellyboxed: {Method} {Url} -> {Status}", method, url, (int)response.StatusCode);
+                }
+
+                return new HttpResult(response.StatusCode, body, response.RequestMessage?.RequestUri ?? new Uri(url), response.Headers);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new LetterboxdException(LetterboxdErrorKind.Failed, "Letterboxd took too long to respond.");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new LetterboxdException(LetterboxdErrorKind.Failed, "Could not reach Letterboxd: " + ex.Message);
+            }
         }
     }
 }
