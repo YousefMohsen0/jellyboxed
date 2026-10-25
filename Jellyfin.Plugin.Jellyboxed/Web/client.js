@@ -35,6 +35,7 @@
     var loadingMe = false;
     var badges = {}; // itemId (32 hex) -> {r, l, w}
     var badgesEtag = null;
+    var badgeStats = null;
     var badgesVersion = 0;
     var badgesLoadedAt = 0;
     var mountedFor = null; // item id the panel is currently shown for
@@ -862,6 +863,7 @@
         return api('badges', { etag: badgesEtag || '', timeout: 60000 }).then(function (res) {
             if (res && res.notModified) { return; }
             badges = (res && res.items) || {};
+            badgeStats = (res && res.stats) || null;
             badgesEtag = res && res.__etag ? res.__etag : null;
             badgesVersion++;
             log('badges', Object.keys(badges).length);
@@ -890,13 +892,26 @@
         return card;
     }
 
+    /** Poster cards: elements with an item id that are the card itself (not the buttons and links inside it). */
+    function findCards() {
+        var sel = (me && me.ui && me.ui.cardSelector) || '[data-id]';
+        var all;
+        try { all = document.querySelectorAll(sel); } catch (e) { all = document.querySelectorAll('[data-id]'); }
+        var out = [];
+        for (var i = 0; i < all.length; i++) {
+            var el = all[i];
+            var outer = el.closest('.card');
+            if (outer && outer !== el) { continue; } // a button or link inside a card
+            out.push(el);
+        }
+        return out;
+    }
+
     function paintBadges() {
         if (!me || !me.features || !me.features.badges || !me.account || !me.account.connected) {
             return;
         }
-        var sel = (me.ui && me.ui.cardSelector) || '[data-id]';
-        var cards;
-        try { cards = document.querySelectorAll(sel); } catch (e) { cards = document.querySelectorAll('[data-id]'); }
+        var cards = findCards();
         var stamp = badgesVersion + '';
         for (var i = 0; i < cards.length; i++) {
             var card = cards[i];
@@ -1140,20 +1155,20 @@
     J.reload = function () { me = null; badges = {}; badgesEtag = null; remount(); tick(); };
     J.state = function () { return { me: me, badges: badges }; };
     J.diagnose = function () {
-        var sel = (me && me.ui && me.ui.cardSelector) || '[data-id]';
-        var cards = document.querySelectorAll(sel);
-        var withId = 0, painted = 0, inBadges = 0;
+        var cards = findCards();
+        var withId = 0, painted = 0, inBadges = 0, sample = null;
         for (var i = 0; i < cards.length; i++) {
             var id = normId(cards[i].getAttribute('data-id'));
             if (id) { withId++; if (badges[id]) { inBadges++; } }
             if (cards[i].querySelector('.jbx-badge')) { painted++; }
+            if (!sample && id) { sample = { id: id, inBadges: !!badges[id], type: cards[i].getAttribute('data-type') }; }
         }
-        var first = cards[0];
+        var ids = Object.keys(badges);
         return {
             version: VERSION, signedIn: signedIn(), connected: !!(me && me.account && me.account.connected),
-            badgesEnabled: !!(me && me.features && me.features.badges), badgeItems: Object.keys(badges).length,
-            selector: sel, cards: cards.length, cardsWithId: withId, cardsWithBadgeData: inBadges, cardsPainted: painted,
-            firstCard: first ? first.className + ' | ' + first.innerHTML.slice(0, 200) : null
+            badgesEnabled: !!(me && me.features && me.features.badges), badgeItems: ids.length,
+            badgeIdsSample: ids.slice(0, 3), serverCounts: badgeStats, cards: cards.length, cardsWithId: withId, cardsWithBadgeData: inBadges, cardsPainted: painted,
+            sampleCard: sample, ui: me && me.ui
         };
     };
 

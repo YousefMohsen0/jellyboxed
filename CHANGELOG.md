@@ -4,6 +4,13 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-10-25
+
+### Fixed
+- Poster badges are only placed on the poster card itself. Before, the buttons and links inside a card (which also carry the film's id) could receive a badge too.
+- When a film's verified Letterboxd match has no rating or watchlist entry, the title-and-year guess is now tried too (before, a film with a stale match never got a badge).
+- The log and the browser-console check (`__jellyboxed.diagnose()`) now report how many library films, ratings and watchlist films were seen and how many were matched, so missing badges can be traced.
+
 ## [1.1.5] - 2026-10-25
 
 ### Fixed
@@ -87,7 +94,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.5...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.6...HEAD
+[1.1.6]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.2...v1.1.3

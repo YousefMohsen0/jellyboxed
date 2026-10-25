@@ -386,21 +386,32 @@ public sealed class FilmService
 
         var set = new BadgeSet { Etag = $"\"{stamp}\"" };
         var file = _states.Get(account.UserId);
+        var libraryCount = 0;
+        var verified = 0;
+        var guessed = 0;
+        int ratingCount;
+        int watchlistCount;
         lock (file.SyncRoot)
         {
+            ratingCount = file.Value.Ratings.Count;
+            watchlistCount = file.Value.Watchlist.Count;
             foreach (var movie in _jellyfin.GetMovies())
             {
-                // Prefer the verified match; until a film has been matched, guess Letterboxd's slug from title and year
-                // so badges appear straight after the first sync.
-                var slug = _slugs.Peek(movie.TmdbId);
+                libraryCount++;
                 RatingEntry? entry = null;
                 var onWatchlist = false;
+                var viaGuess = false;
+
+                // Prefer the verified match; when it finds nothing (or there is none yet), guess Letterboxd's slug from
+                // title and year so badges still appear.
+                var slug = _slugs.Peek(movie.TmdbId);
                 if (slug is not null)
                 {
                     file.Value.Ratings.TryGetValue(slug, out entry);
                     onWatchlist = file.Value.Watchlist.Contains(slug);
                 }
-                else
+
+                if (entry is null && !onWatchlist)
                 {
                     foreach (var guess in GuessSlugs(movie.Name, movie.Year))
                     {
@@ -408,6 +419,7 @@ public sealed class FilmService
                         onWatchlist = file.Value.Watchlist.Contains(guess);
                         if (entry is not null || onWatchlist)
                         {
+                            viaGuess = true;
                             break;
                         }
                     }
@@ -418,10 +430,23 @@ public sealed class FilmService
                     continue;
                 }
 
+                if (viaGuess)
+                {
+                    guessed++;
+                }
+                else
+                {
+                    verified++;
+                }
+
                 set.Items[movie.ItemId.ToString("N")] = new BadgeDto { Rating = entry?.Rating, Loved = entry?.Loved ?? false, Watchlist = onWatchlist };
             }
         }
 
+        set.Stats = new BadgeStats { Library = libraryCount, Ratings = ratingCount, Watchlist = watchlistCount, Verified = verified, Guessed = guessed };
+        _logger.LogInformation(
+            "Jellyboxed: poster badges for {Username}: {Library} library films with a TMDB id, {Ratings} rated/liked and {Watchlist} watchlist films synced, {Verified} matched, {Guessed} matched by title",
+            account.Username, libraryCount, ratingCount, watchlistCount, verified, guessed);
         _badgeCache[account.UserId] = (stamp, set);
         return set;
     }

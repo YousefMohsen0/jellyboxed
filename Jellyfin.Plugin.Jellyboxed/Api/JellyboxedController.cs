@@ -471,7 +471,7 @@ public class JellyboxedController : ControllerBase
             return StatusCode(StatusCodes.Status304NotModified);
         }
 
-        return Json(new { items = set.Items });
+        return Json(new { items = set.Items, stats = set.Stats });
     }
 
     [HttpGet("pending")]

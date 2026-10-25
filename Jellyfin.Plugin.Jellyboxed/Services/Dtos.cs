@@ -49,6 +49,22 @@ public sealed class BadgeSet
     public string Etag { get; set; } = string.Empty;
 
     public Dictionary<string, BadgeDto> Items { get; set; } = new();
+
+    public BadgeStats Stats { get; set; } = new();
+}
+
+/// <summary>Counts shown by the browser-console check, to see why badges may be missing.</summary>
+public sealed class BadgeStats
+{
+    public int Library { get; set; }
+
+    public int Ratings { get; set; }
+
+    public int Watchlist { get; set; }
+
+    public int Verified { get; set; }
+
+    public int Guessed { get; set; }
 }
 
 /// <summary>Input for logging a film.</summary>
