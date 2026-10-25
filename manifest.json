@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.1.5.0",
+        "changelog": "### Fixed\n- Poster badges now sit on the poster picture itself (they could end up on the outer card, under the poster, and be hidden by some themes).\n- Poster badges (stars, loved, watchlist) now also appear for films that have not been matched yet: the plugin guesses Letterboxd's address from the title and year until the verified match is known.\n- The Letterboxd panel, floating button and badges no longer appear on shows, seasons or episodes. If Jellyfin can't tell what kind of item a page is, nothing is shown and it checks again shortly.\n\n### Added\n- **Hide badge on hover** setting: the poster badge fades out while the pointer is over the poster.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.1.5/jellyboxed_1.1.5.0.zip",
+        "checksum": "3C011DA8A5E10760766068248A73722E",
+        "timestamp": "2026-10-25T19:04:08Z"
+      },
+      {
         "version": "1.1.4.0",
         "changelog": "### Fixed\n- Opening a film no longer waits on the bot-check solver (those requests timed out and also held up the sync). Only background syncs read pages through the solver now.\n- A page loaded through the solver is no longer wrongly rejected as a bot check just because it mentions Cloudflare. Only a real challenge page (its title) counts, and the log now shows the page title and size when one is rejected.",
         "targetAbi": "12.0.0.0",
