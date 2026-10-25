@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.2.0.0",
+        "changelog": "### Added\n- **Jellyfin's watchlist and heart buttons can update Letterboxd.** Two new switches in the plugin settings (both off by default): clicking the watchlist button on a film adds or removes it on your Letterboxd watchlist, and clicking the heart likes or un-likes it on Letterboxd. If you mirror your Letterboxd watchlist onto favourites, the heart changes the watchlist instead. Needs a signed-in Letterboxd session.\n\n### Fixed\n- A stray orange watchlist icon appeared next to the heart and watched buttons on film pages. Badges are now only drawn on poster cards.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.2.0/jellyboxed_1.2.0.0.zip",
+        "checksum": "813AFDCA6F7E21935DC9044667C0391B",
+        "timestamp": "2026-10-25T23:59:16Z"
+      },
+      {
         "version": "1.1.7.0",
         "changelog": "### Fixed\n- **Poster badges (and film matching) found no movies in the library.** The library list came back without TMDB ids on Jellyfin 12, so nothing could be matched to your Letterboxd data. The library is now read with full item details, with a second look at any film that still has no id, and the log says how many movies were found.",
         "targetAbi": "12.0.0.0",
