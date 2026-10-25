@@ -660,9 +660,35 @@ public sealed class LetterboxdClient : IDisposable
     private Task<HttpResult> GetAsync(string url, CancellationToken ct, IDictionary<string, string>? headers = null) =>
         SendAsync(HttpMethod.Get, url, null, headers, ct);
 
+    private async Task<HttpResult?> FetchViaSolverAsync(string url, CancellationToken ct)
+    {
+        var cookies = _cookies.GetCookies(BaseUri).Cast<Cookie>()
+            .Where(c => c.Name != "cf_clearance" && c.Value.Length > 0)
+            .Select(c => (c.Name, c.Value));
+        var fetched = await CloudflarePass.FetchAsync(Config.FlareSolverrUrl, Config.FlareSolverrTimeoutSeconds, url, cookies, _logger, ct).ConfigureAwait(false);
+        if (fetched is null)
+        {
+            return null;
+        }
+
+        using var empty = new HttpResponseMessage();
+        var final = Uri.TryCreate(fetched.FinalUrl, UriKind.Absolute, out var u) ? u : new Uri(url);
+        return new HttpResult((HttpStatusCode)fetched.Status, fetched.Body, final, empty.Headers);
+    }
+
     private async Task<HttpResult> SendAsync(HttpMethod method, string url, HttpContent? content, IDictionary<string, string>? headers, CancellationToken ct)
     {
         using var slot = await _gate.EnterAsync(ct).ConfigureAwait(false);
+
+        // Direct requests were refused recently even with a pass: read through the solver's browser instead.
+        if (method == HttpMethod.Get && CloudflarePass.SolverOnly && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl))
+        {
+            var viaSolver = await FetchViaSolverAsync(url, ct).ConfigureAwait(false);
+            if (viaSolver is not null)
+            {
+                return viaSolver;
+            }
+        }
 
         // At most two tries: if Cloudflare shows a bot check and a FlareSolverr helper is configured, get a fresh
         // pass from it and try once more before telling the rest of the plugin to back off.
@@ -718,6 +744,18 @@ public sealed class LetterboxdClient : IDisposable
                     if (fresh is not null && !ReferenceEquals(fresh, pass))
                     {
                         continue;
+                    }
+                }
+
+                if (botCheck && method == HttpMethod.Get && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl) && CloudflarePass.Current is not null)
+                {
+                    // Even a fresh pass is refused for direct requests: let the solver's browser load the page.
+                    _logger.LogWarning("Jellyboxed: Letterboxd still refuses direct requests after a pass; reading pages through the solver for now.");
+                    CloudflarePass.PreferSolverFor(TimeSpan.FromMinutes(30));
+                    var viaSolver = await FetchViaSolverAsync(url, ct).ConfigureAwait(false);
+                    if (viaSolver is not null)
+                    {
+                        return viaSolver;
                     }
                 }
 
