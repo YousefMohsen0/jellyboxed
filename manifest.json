@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.1.2.0",
+        "changelog": "### Fixed\n- When the bot-check solver (FlareSolverr / Byparr) fails, the log now says what it answered (HTTP status and message) instead of a JSON parse error. Also sends Byparr's `max_timeout` setting.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.1.2/jellyboxed_1.1.2.0.zip",
+        "checksum": "3379DCA7BD2D83D05D062561A15384B4",
+        "timestamp": "2026-10-25T01:39:45Z"
+      },
+      {
         "version": "1.1.1.0",
         "changelog": "Release 1.1.1",
         "targetAbi": "12.0.0.0",
