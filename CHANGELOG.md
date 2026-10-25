@@ -4,6 +4,11 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-10-25
+
+### Fixed
+- **Poster badges (and film matching) found no movies in the library.** The library list came back without TMDB ids on Jellyfin 12, so nothing could be matched to your Letterboxd data. The library is now read with full item details, with a second look at any film that still has no id, and the log says how many movies were found.
+
 ## [1.1.6] - 2026-10-25
 
 ### Fixed
@@ -94,7 +99,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.6...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.7...HEAD
+[1.1.7]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.3...v1.1.4

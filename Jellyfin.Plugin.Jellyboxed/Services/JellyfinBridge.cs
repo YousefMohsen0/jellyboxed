@@ -167,20 +167,37 @@ public sealed class JellyfinBridge
                 {
                     IncludeItemTypes = new[] { BaseItemKind.Movie },
                     Recursive = true,
-                    DtoOptions = new DtoOptions(false),
+                    DtoOptions = new DtoOptions(true),
                 };
 
                 var movies = new List<LibraryMovie>();
                 var byItem = new Dictionary<Guid, string>();
-                foreach (var item in _library.GetItemList(query))
+                var all = _library.GetItemList(query);
+                var reloaded = 0;
+                foreach (var listed in all)
                 {
+                    var item = listed;
                     var tmdb = item.GetProviderId(MetadataProvider.Tmdb);
+                    if (string.IsNullOrWhiteSpace(tmdb))
+                    {
+                        // A list query may skip provider ids on some Jellyfin versions: load the item itself.
+                        var full = _library.GetItemById<BaseItem>(item.Id);
+                        if (full is not null)
+                        {
+                            item = full;
+                            tmdb = item.GetProviderId(MetadataProvider.Tmdb);
+                            reloaded++;
+                        }
+                    }
+
                     if (!string.IsNullOrWhiteSpace(tmdb))
                     {
                         movies.Add(new LibraryMovie(item.Id, tmdb, item.Name ?? string.Empty, item.ProductionYear));
                         byItem[item.Id] = tmdb;
                     }
                 }
+
+                _logger.LogInformation("Jellyboxed: movie library read: {Total} movies, {WithTmdb} with a TMDB id ({Reloaded} needed a second look)", all.Count, movies.Count, reloaded);
 
                 _movies = movies;
                 _tmdbByItem = byItem;
