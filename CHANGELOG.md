@@ -7,14 +7,9 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 ## [1.1.5] - 2026-10-25
 
 ### Fixed
-- Poster badges now sit on the poster picture itself (they could end up on the outer card, under the poster, and be hidden by some themes). Cards that identify as shows, seasons or episodes are skipped.
-- If Jellyfin can't tell what kind of item a page is, Jellyboxed no longer assumes it is a film; it shows nothing and checks again shortly.
-
-## [1.1.5] - 2026-10-25
-
-### Fixed
-- The Letterboxd panel and floating button no longer appear on shows, seasons or episodes.
+- Poster badges now sit on the poster picture itself (they could end up on the outer card, under the poster, and be hidden by some themes).
 - Poster badges (stars, loved, watchlist) now also appear for films that have not been matched yet: the plugin guesses Letterboxd's address from the title and year until the verified match is known.
+- The Letterboxd panel, floating button and badges no longer appear on shows, seasons or episodes. If Jellyfin can't tell what kind of item a page is, nothing is shown and it checks again shortly.
 
 ### Added
 - **Hide badge on hover** setting: the poster badge fades out while the pointer is over the poster.
