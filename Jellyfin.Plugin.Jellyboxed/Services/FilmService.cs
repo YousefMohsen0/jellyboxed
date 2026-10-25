@@ -343,6 +343,37 @@ public sealed class FilmService
         return await GetMineAsync(account, tmdbId, ct).ConfigureAwait(false);
     }
 
+    /// <summary>Likes or un-likes a film on Letterboxd (the heart), without adding a diary entry.</summary>
+    public async Task SetLikedAsync(LetterboxdAccount account, string tmdbId, bool liked, CancellationToken ct)
+    {
+        if (account.Level != AuthLevel.Session)
+        {
+            throw new LetterboxdException(LetterboxdErrorKind.NotSignedIn, "Sign in to Letterboxd to like films.");
+        }
+
+        var slug = await _slugs.ResolveAsync(tmdbId, ct).ConfigureAwait(false)
+            ?? throw new LetterboxdException(LetterboxdErrorKind.NotFound, "This film was not found on Letterboxd.");
+
+        await _pool.Get(account).SetLikeAsync(slug, liked, ct).ConfigureAwait(false);
+        _pool.PersistCookies(account.UserId);
+
+        var file = _states.Get(account.UserId);
+        lock (file.SyncRoot)
+        {
+            if (file.Value.Ratings.TryGetValue(slug, out var entry))
+            {
+                entry.Loved = liked;
+                entry.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else if (liked)
+            {
+                file.Value.Ratings[slug] = new RatingEntry { Loved = true, UpdatedAt = DateTimeOffset.UtcNow };
+            }
+        }
+
+        _states.Touch(account.UserId);
+    }
+
     // ------------------------------------------------------------------ poster badges
 
     /// <summary>Letterboxd's usual slug for a film: the title, plus the year when another film shares the name.</summary>

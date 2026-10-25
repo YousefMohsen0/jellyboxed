@@ -649,6 +649,55 @@
         mountedFor = null;
     }
 
+    // ------------------------------------------------------------------ Jellyfin's own buttons -> Letterboxd
+
+    var BUTTONS = 'button.watchlist-icon, button.watchlist-button, .watchlist-icon, .watchlist-button, [is="emby-ratingbutton"], button.btnUserRating';
+
+    function buttonKind(btn) {
+        if (btn.matches('.watchlist-icon, .watchlist-button')) { return { kind: 'watchlist', attr: 'data-active' }; }
+        if (btn.hasAttribute('data-isfavorite')) { return { kind: 'favorite', attr: 'data-isfavorite' }; }
+        return null;
+    }
+
+    function onJellyfinButton(ev) {
+        var target = ev.target && ev.target.closest ? ev.target : null;
+        if (!target || !signedIn() || !me || !me.account || me.account.level !== 'session' || !me.features) { return; }
+        var btn = target.closest(BUTTONS);
+        if (!btn) { return; }
+        var info = buttonKind(btn);
+        if (!info) { return; }
+        if (info.kind === 'watchlist' && !me.features.pushWatchlist) { return; }
+        if (info.kind === 'favorite' && !me.features.pushFavorite) { return; }
+        var id = normId(btn.getAttribute('data-id') || btn.getAttribute('data-item-id') || btn.getAttribute('data-itemid') || itemIdFromLocation());
+        if (!id) { return; }
+        var before = btn.getAttribute(info.attr);
+        // The other plugin or Jellyfin flips the attribute shortly after the click; wait for it.
+        var tries = 0;
+        var timer = setInterval(function () {
+            tries++;
+            var now = btn.getAttribute(info.attr);
+            if (now !== before && now !== null) {
+                clearInterval(timer);
+                pushButton(id, info.kind, now === 'true');
+            } else if (tries > 14) {
+                clearInterval(timer);
+            }
+        }, 150);
+    }
+
+    function pushButton(id, kind, value) {
+        api('item/' + id + '/jellyfin-button', { method: 'POST', body: { kind: kind, value: value }, timeout: 30000 }).then(function (res) {
+            if (!res || !res.ok) { return; }
+            toast(res.target === 'like' ? (value ? 'Liked on Letterboxd.' : 'Removed your like on Letterboxd.') : (value ? 'Added to your Letterboxd watchlist.' : 'Removed from your Letterboxd watchlist.'), 'ok');
+            badgesEtag = null;
+            loadBadges(true);
+            if (itemIdFromLocation() === id) { remount(); }
+        }).catch(function (e) {
+            if (e && (e.code === 'notmovie' || e.code === 'noaccount')) { return; }
+            toast((e && e.message) || 'Could not update Letterboxd.', 'err');
+        });
+    }
+
     function remount() {
         removePanel();
         scheduleScan();
@@ -902,6 +951,8 @@
             var el = all[i];
             var outer = el.closest('.card');
             if (outer && outer !== el) { continue; } // a button or link inside a card
+            // Only real poster cards: anything else with an item id (detail-page buttons, links) is not a poster.
+            if (!el.classList.contains('card') && !el.querySelector('.cardImageContainer, .cardScalable, .cardBox')) { continue; }
             out.push(el);
         }
         return out;
@@ -1141,6 +1192,7 @@
     function start() {
         hookHistory();
         watchPlaybackStops();
+        document.addEventListener('click', onJellyfinButton, true);
         new MutationObserver(scheduleScan).observe(document.body, { childList: true, subtree: true });
         document.addEventListener('visibilitychange', function () {
             if (!document.hidden) { loadBadges(false); checkPending(); }
