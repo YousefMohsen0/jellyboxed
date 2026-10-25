@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.1.6.0",
+        "changelog": "### Fixed\n- Poster badges are only placed on the poster card itself. Before, the buttons and links inside a card (which also carry the film's id) could receive a badge too.\n- When a film's verified Letterboxd match has no rating or watchlist entry, the title-and-year guess is now tried too (before, a film with a stale match never got a badge).\n- The log and the browser-console check (`__jellyboxed.diagnose()`) now report how many library films, ratings and watchlist films were seen and how many were matched, so missing badges can be traced.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.1.6/jellyboxed_1.1.6.0.zip",
+        "checksum": "F861C584999C22681FDC288E5EFF3601",
+        "timestamp": "2026-10-25T20:08:38Z"
+      },
+      {
         "version": "1.1.5.0",
         "changelog": "### Fixed\n- Poster badges now sit on the poster picture itself (they could end up on the outer card, under the poster, and be hidden by some themes).\n- Poster badges (stars, loved, watchlist) now also appear for films that have not been matched yet: the plugin guesses Letterboxd's address from the title and year until the verified match is known.\n- The Letterboxd panel, floating button and badges no longer appear on shows, seasons or episodes. If Jellyfin can't tell what kind of item a page is, nothing is shown and it checks again shortly.\n\n### Added\n- **Hide badge on hover** setting: the poster badge fades out while the pointer is over the poster.",
         "targetAbi": "12.0.0.0",
