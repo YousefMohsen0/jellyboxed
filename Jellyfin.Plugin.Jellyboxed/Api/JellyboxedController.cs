@@ -220,6 +220,7 @@ public class JellyboxedController : ControllerBase
                 badgeRating = cfg.BadgeShowRating,
                 badgeLoved = cfg.BadgeShowLoved,
                 badgeWatchlist = cfg.BadgeShowWatchlist,
+                badgeHideOnHover = cfg.BadgeHideOnHover,
                 detailSelector = cfg.DetailPageSelector,
                 cardSelector = cfg.CardSelector,
                 debug = cfg.DebugLogging,

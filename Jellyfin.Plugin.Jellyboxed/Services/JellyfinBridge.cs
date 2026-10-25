@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Jellyboxed.Services;
 
 /// <summary>A movie in the Jellyfin library that has a TMDB id.</summary>
-public sealed record LibraryMovie(Guid ItemId, string TmdbId);
+public sealed record LibraryMovie(Guid ItemId, string TmdbId, string Name = "", int? Year = null);
 
 /// <summary>The only place that touches Jellyfin's library / user-data APIs, so version changes stay in one file.</summary>
 public sealed class JellyfinBridge
@@ -177,7 +177,7 @@ public sealed class JellyfinBridge
                     var tmdb = item.GetProviderId(MetadataProvider.Tmdb);
                     if (!string.IsNullOrWhiteSpace(tmdb))
                     {
-                        movies.Add(new LibraryMovie(item.Id, tmdb));
+                        movies.Add(new LibraryMovie(item.Id, tmdb, item.Name ?? string.Empty, item.ProductionYear));
                         byItem[item.Id] = tmdb;
                     }
                 }

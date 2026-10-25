@@ -775,3 +775,8 @@
 }
 
 .jbx-fab:hover, .jbx-fab:focus-visible { filter: brightness(1.1); outline: 2px solid #fff; outline-offset: 2px; }
+
+.jbx-badge { transition: opacity 0.15s ease; }
+.jbx-badge.jbx-hide-hover { transition: opacity 0.15s ease; }
+*:hover > .jbx-badge.jbx-hide-hover,
+.jbx-hover-host:hover .jbx-badge.jbx-hide-hover { opacity: 0; }
