@@ -4,6 +4,13 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-25
+
+### Fixed
+- **Syncing now works behind Cloudflare's bot check when a solver (FlareSolverr / Byparr) is set up.** If Letterboxd still refuses the server's own requests even with a fresh pass, Jellyboxed now loads the pages through the solver's browser instead (for 30 minutes, then it tries directly again).
+- Reconnecting or disconnecting an account during a sync no longer ends in an error; the sync restarts cleanly.
+- The log now shows the browser identity the solver used.
+
 ## [1.1.2] - 2026-10-25
 
 ### Fixed
@@ -64,7 +71,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.0.2...v1.1.0

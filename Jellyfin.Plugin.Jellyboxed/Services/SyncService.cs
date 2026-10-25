@@ -211,6 +211,16 @@ public sealed class SyncService : BackgroundService
                 }
             });
         }
+        catch (ObjectDisposedException)
+        {
+            // The account was reconnected or disconnected while this sync was running (its session was replaced).
+            _logger.LogInformation("Jellyboxed: {Kind} sync for {Username} was interrupted because the account changed; it will start again.", kind, account.Username);
+            status.LastError = null;
+            if (_accounts.Get(userId) is not null)
+            {
+                Enqueue(userId, kind);
+            }
+        }
         catch (Exception ex)
         {
             status.LastError = "Unexpected error: " + ex.Message;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -32,6 +33,7 @@ internal static class CloudflarePass
     {
         _current = null;
         _lastAttempt = DateTimeOffset.MinValue;
+        Interlocked.Exchange(ref _solverOnlyUntilTicks, 0);
     }
 
     /// <summary>
@@ -105,7 +107,7 @@ internal static class CloudflarePass
                 }
 
                 _current = new Pass(clearance, userAgent, DateTimeOffset.UtcNow);
-                logger.LogInformation("Jellyboxed: got a fresh Cloudflare pass from FlareSolverr.");
+                logger.LogInformation("Jellyboxed: got a fresh Cloudflare pass from the solver (browser identity: {UserAgent}).", userAgent.Length > 90 ? userAgent[..90] : userAgent);
                 return _current;
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidOperationException)
@@ -122,6 +124,94 @@ internal static class CloudflarePass
         finally
         {
             Lock.Release();
+        }
+    }
+
+    private static readonly SemaphoreSlim FetchLock = new(1, 1);
+    private static long _solverOnlyUntilTicks;
+
+    /// <summary>True while direct requests are known to be refused, so reads should go through the solver straight away.</summary>
+    internal static bool SolverOnly => DateTimeOffset.UtcNow.UtcTicks < Interlocked.Read(ref _solverOnlyUntilTicks);
+
+    /// <summary>Remembers (for a while) that direct requests do not get through even with a pass.</summary>
+    internal static void PreferSolverFor(TimeSpan duration) =>
+        Interlocked.Exchange(ref _solverOnlyUntilTicks, DateTimeOffset.UtcNow.Add(duration).UtcTicks);
+
+    internal sealed record Fetched(int Status, string Body, string FinalUrl);
+
+    /// <summary>
+    /// Loads a page through the solver's real browser. Used for read-only requests when Cloudflare still refuses
+    /// direct requests from this server even with a pass. One request at a time.
+    /// </summary>
+    internal static async Task<Fetched?> FetchAsync(string flareSolverrUrl, int timeoutSeconds, string url, IEnumerable<(string Name, string Value)> cookies, ILogger logger, CancellationToken ct)
+    {
+        await FetchLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var endpoint = flareSolverrUrl.TrimEnd('/');
+            if (!endpoint.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+            {
+                endpoint += "/v1";
+            }
+
+            var jar = new JsonArray();
+            foreach (var (name, value) in cookies)
+            {
+                jar.Add(new JsonObject { ["name"] = name, ["value"] = value, ["domain"] = ".letterboxd.com", ["path"] = "/" });
+            }
+
+            var payload = new JsonObject
+            {
+                ["cmd"] = "request.get",
+                ["url"] = url,
+                ["maxTimeout"] = Math.Clamp(timeoutSeconds, 15, 120) * 1000,
+                ["max_timeout"] = Math.Clamp(timeoutSeconds, 15, 120),
+                ["cookies"] = jar,
+            };
+
+            try
+            {
+                using var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
+                using var response = await Http.PostAsync(endpoint, content, ct).ConfigureAwait(false);
+                var text = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                if (!text.TrimStart().StartsWith('{'))
+                {
+                    logger.LogWarning("Jellyboxed: the solver answered HTTP {Status} with a non-JSON body while loading {Url}.", (int)response.StatusCode, url);
+                    return null;
+                }
+
+                var root = JsonNode.Parse(text);
+                var solution = root?["solution"];
+                if (root?["status"]?.GetValue<string>() != "ok" || solution is null)
+                {
+                    logger.LogWarning("Jellyboxed: the solver could not load {Url}: {Message}", url, root?["message"]?.GetValue<string>() ?? "no message");
+                    return null;
+                }
+
+                var body = solution["response"]?.GetValue<string>() ?? string.Empty;
+                var status = solution["status"]?.GetValue<int>() ?? 200;
+                if (body.Contains("Just a moment", StringComparison.OrdinalIgnoreCase) || body.Contains("cf-chl", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.LogWarning("Jellyboxed: the solver was shown a bot check while loading {Url} and could not pass it.", url);
+                    return null;
+                }
+
+                return new Fetched(status, body, solution["url"]?.GetValue<string>() ?? url);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException or InvalidOperationException or FormatException)
+            {
+                if (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+
+                logger.LogWarning("Jellyboxed: could not load {Url} through the solver: {Message}", url, ex.Message);
+                return null;
+            }
+        }
+        finally
+        {
+            FetchLock.Release();
         }
     }
 }

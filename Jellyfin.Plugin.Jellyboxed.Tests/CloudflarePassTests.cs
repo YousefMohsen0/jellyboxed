@@ -73,4 +73,28 @@ public class CloudflarePassTests
         Assert.Null(pass);
         CloudflarePass.Reset();
     }
+
+    [Fact]
+    public async Task FetchAsync_ReturnsPageBody()
+    {
+        CloudflarePass.Reset();
+        using var listener = Start(
+            "{\"status\":\"ok\",\"solution\":{\"url\":\"https://letterboxd.com/film/x/\",\"status\":200,\"response\":\"<html>hello</html>\"}}",
+            out var url);
+        var page = await CloudflarePass.FetchAsync(url, 30, "https://letterboxd.com/film/x/", Array.Empty<(string, string)>(), NullLogger.Instance, CancellationToken.None);
+        Assert.NotNull(page);
+        Assert.Equal(200, page!.Status);
+        Assert.Contains("hello", page.Body);
+    }
+
+    [Fact]
+    public async Task FetchAsync_ReturnsNullOnBotCheckPage()
+    {
+        CloudflarePass.Reset();
+        using var listener = Start(
+            "{\"status\":\"ok\",\"solution\":{\"status\":403,\"response\":\"<title>Just a moment...</title>\"}}",
+            out var url);
+        var page = await CloudflarePass.FetchAsync(url, 30, "https://letterboxd.com/", Array.Empty<(string, string)>(), NullLogger.Instance, CancellationToken.None);
+        Assert.Null(page);
+    }
 }
