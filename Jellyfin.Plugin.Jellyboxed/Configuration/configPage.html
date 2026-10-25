@@ -89,7 +89,9 @@
                             ['EnableFriendReviews', 'bool', 'Let users read friends’ reviews'],
                             ['EnablePosterBadges', 'bool', 'Draw rating badges on library posters'],
                             ['EnablePlaybackPrompt', 'bool', 'Offer to log a film after it has been watched'],
-                            ['AllowWatchlistToFavorites', 'bool', 'Allow users to mirror their Letterboxd watchlist onto Jellyfin favourites', 'Opt-in per user. Only ever adds favourites.']
+                            ['AllowWatchlistToFavorites', 'bool', 'Allow users to mirror their Letterboxd watchlist onto Jellyfin favourites', 'Opt-in per user. Only ever adds favourites.'],
+                            ['PushWatchlistButtonToLetterboxd', 'bool', 'Jellyfin watchlist button also updates the Letterboxd watchlist', 'When a signed-in user adds or removes a film with the watchlist button, the same happens on Letterboxd.'],
+                            ['PushFavoriteButtonToLetterboxd', 'bool', 'Jellyfin heart button also likes the film on Letterboxd', 'When a signed-in user hearts or un-hearts a film, it is liked or un-liked on Letterboxd. If a user mirrors their Letterboxd watchlist onto favourites, the heart changes the watchlist instead.']
                         ]},
                         { title: 'Sign-in options', help: 'How users may connect Letterboxd. A username alone gives read-only access to a public profile.', fields: [
                             ['AllowUserSelfConnect', 'bool', 'Let users connect their own Letterboxd account'],

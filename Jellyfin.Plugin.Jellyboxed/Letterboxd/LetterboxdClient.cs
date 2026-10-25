@@ -576,6 +576,87 @@ public sealed class LetterboxdClient : IDisposable
         throw new LetterboxdException(LetterboxdErrorKind.Failed, $"Letterboxd did not accept the watchlist change (HTTP {(last is null ? 0 : (int)last.Status)}). Turn on Debug logging for details.");
     }
 
+    /// <summary>Likes (or un-likes) a film without logging it. Requires a signed-in session.</summary>
+    public async Task SetLikeAsync(string slug, bool like, CancellationToken ct)
+    {
+        // Ask Letterboxd's own page where to send the like first; fall back to its usual address pattern.
+        var targets = new List<string>();
+        try
+        {
+            var side = await GetAsync($"{Base}/csi/film/{slug}/sidebar-user-actions/?esiAllowUser=true", ct, new Dictionary<string, string>
+            {
+                ["Referer"] = $"{Base}/film/{slug}/",
+            }).ConfigureAwait(false);
+            if (side.Ok)
+            {
+                foreach (var url in LetterboxdParser.FindLikeUrls(side.Body, like))
+                {
+                    targets.Add(url.StartsWith('/') ? Base + url : url);
+                }
+            }
+        }
+        catch (LetterboxdException ex) when (ex.Kind != LetterboxdErrorKind.Blocked)
+        {
+            _logger.LogDebug(ex, "Jellyboxed: could not read the like address for {Slug}", slug);
+        }
+
+        var verb = like ? "like" : "unlike";
+        var fallback = $"{Base}/film/{slug}/{verb}/";
+        if (!targets.Contains(fallback))
+        {
+            targets.Add(fallback);
+        }
+
+        HttpResult? last = null;
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            var csrf = await GetCsrfAsync(attempt > 0, ct).ConfigureAwait(false);
+            var sessionProblem = false;
+            foreach (var url in targets)
+            {
+                using var form = new FormUrlEncodedContent(new Dictionary<string, string> { ["__csrf"] = csrf });
+                var res = await SendAsync(HttpMethod.Post, url, form, WriteHeaders($"{Base}/film/{slug}/", csrf), ct).ConfigureAwait(false);
+                last = res;
+
+                try
+                {
+                    var node = JsonNode.Parse(res.Body);
+                    if (node?["result"]?.GetValue<bool>() == true)
+                    {
+                        return;
+                    }
+                }
+                catch (Exception ex) when (ex is JsonException or InvalidOperationException or FormatException)
+                {
+                    // Not JSON.
+                }
+
+                if (res.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                {
+                    sessionProblem = true;
+                    break;
+                }
+
+                _logger.LogDebug("Jellyboxed: {Verb} via {Url} -> HTTP {Status}: {Body}", verb, url, (int)res.Status, Truncate(res.Body, 200));
+            }
+
+            if (sessionProblem && attempt == 0)
+            {
+                continue;
+            }
+
+            if (sessionProblem)
+            {
+                throw new LetterboxdException(LetterboxdErrorKind.NotSignedIn, "Your Letterboxd session has expired. Sign in again.");
+            }
+
+            break;
+        }
+
+        _logger.LogWarning("Jellyboxed: {Verb} for {Slug} failed (last HTTP {Status}): {Body}", verb, slug, last is null ? 0 : (int)last.Status, Truncate(last?.Body ?? string.Empty, 200));
+        throw new LetterboxdException(LetterboxdErrorKind.Failed, $"Letterboxd did not accept the like (HTTP {(last is null ? 0 : (int)last.Status)}). Turn on Debug logging for details.");
+    }
+
     // ------------------------------------------------------------------ plumbing
 
     public void Dispose() => _http.Dispose();

@@ -219,6 +219,29 @@ public static class LetterboxdParser
         return m.Success ? m.Groups[1].Value : null;
     }
 
+    /// <summary>
+    /// Finds the address Letterboxd's own page uses to like (or un-like) a film, from the user-actions snippet.
+    /// Returns nothing when the page does not spell one out.
+    /// </summary>
+    public static List<string> FindLikeUrls(string html, bool like)
+    {
+        var result = new List<string>();
+        foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(html, "\"((?:https://letterboxd\\.com)?/[^\"\\s<>]+)\""))
+        {
+            var url = m.Groups[1].Value;
+            var path = url.Split('?')[0].TrimEnd('/');
+            var last = path[(path.LastIndexOf('/') + 1)..].ToLowerInvariant();
+            var isUnlike = last is "unlike" or "remove-like" or "remove-from-likes";
+            var isLike = last is "like" or "add-like" or "add-to-likes";
+            if (((like && isLike) || (!like && isUnlike)) && !result.Contains(url))
+            {
+                result.Add(url);
+            }
+        }
+
+        return result;
+    }
+
     public static bool ParseLoved(string html)
     {
         if (html.Contains("data-is-liked=\"true\"", StringComparison.Ordinal))

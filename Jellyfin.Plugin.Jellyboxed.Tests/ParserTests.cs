@@ -70,6 +70,18 @@ public class ParserTests
     }
 
     [Fact]
+    public void FindLikeUrls_PicksTheRightDirection()
+    {
+        const string html = "<a href=\"/film/dune/like/\"></a><a href=\"/film/dune/unlike/\"></a><a href=\"/me/likes/films/\"></a><span data-url=\"https://letterboxd.com/s/film:1/like\"></span>";
+        var like = LetterboxdParser.FindLikeUrls(html, true);
+        Assert.Contains("/film/dune/like/", like);
+        Assert.Contains("https://letterboxd.com/s/film:1/like", like);
+        Assert.DoesNotContain("/film/dune/unlike/", like);
+        Assert.DoesNotContain("/me/likes/films/", like);
+        Assert.Equal(new[] { "/film/dune/unlike/" }, LetterboxdParser.FindLikeUrls(html, false));
+    }
+
+    [Fact]
     public void OwnRating_AndLovedMarkers()
     {
         Assert.Equal(3.5, LetterboxdParser.ParseOwnRating("<span class=\"rating rated-7\"></span>"));

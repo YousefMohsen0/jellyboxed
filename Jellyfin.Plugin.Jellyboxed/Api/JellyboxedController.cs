@@ -212,6 +212,8 @@ public class JellyboxedController : ControllerBase
                 cookieLogin = cfg.AllowCookieLogin,
                 selfConnect = cfg.AllowUserSelfConnect,
                 watchlistToFavorites = cfg.AllowWatchlistToFavorites,
+                pushWatchlist = cfg.PushWatchlistButtonToLetterboxd,
+                pushFavorite = cfg.PushFavoriteButtonToLetterboxd,
             },
             ui = new
             {
@@ -444,6 +446,57 @@ public class JellyboxedController : ControllerBase
         {
             var mine = await _films.SetWatchlistAsync(account!, tmdb!, itemId, input?.Add ?? true, ct).ConfigureAwait(false);
             return Ok(new { mine });
+        }
+        catch (LetterboxdException ex)
+        {
+            return LetterboxdFail(ex);
+        }
+    }
+
+    /// <summary>Called by the web client after the user clicks Jellyfin's own watchlist or heart button on a film.</summary>
+    [HttpPost("item/{itemId:guid}/jellyfin-button")]
+    [Authorize]
+    public async Task<IActionResult> JellyfinButton(Guid itemId, CancellationToken ct)
+    {
+        var input = await ReadBodyAsync<ButtonInput>().ConfigureAwait(false);
+        var kind = (input?.Kind ?? string.Empty).ToLowerInvariant();
+        var value = input?.Value ?? false;
+        var cfg = Config;
+        if ((kind == "watchlist" && !cfg.PushWatchlistButtonToLetterboxd) || (kind == "favorite" && !cfg.PushFavoriteButtonToLetterboxd) || (kind != "watchlist" && kind != "favorite"))
+        {
+            return Ok(new { ok = false, skipped = "off" });
+        }
+
+        var (account, tmdb, failure) = Resolve(itemId);
+        if (failure is not null)
+        {
+            return failure;
+        }
+
+        if (account!.Level != AuthLevel.Session)
+        {
+            return Ok(new { ok = false, skipped = "readonly" });
+        }
+
+        try
+        {
+            // A user who mirrors their Letterboxd watchlist onto favourites uses the heart as the watchlist.
+            var asWatchlist = kind == "watchlist" || (account.WatchlistToFavorites && cfg.AllowWatchlistToFavorites);
+            if (asWatchlist)
+            {
+                if (!cfg.EnableWatchlist)
+                {
+                    return Ok(new { ok = false, skipped = "off" });
+                }
+
+                await _films.SetWatchlistAsync(account, tmdb!, itemId, value, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await _films.SetLikedAsync(account, tmdb!, value, ct).ConfigureAwait(false);
+            }
+
+            return Ok(new { ok = true, target = asWatchlist ? "watchlist" : "like" });
         }
         catch (LetterboxdException ex)
         {
@@ -853,6 +906,13 @@ public class JellyboxedController : ControllerBase
         public bool? MarkPlayedOnLog { get; set; }
 
         public bool? PromptAfterPlayback { get; set; }
+    }
+
+    public sealed class ButtonInput
+    {
+        public string Kind { get; set; } = string.Empty;
+
+        public bool Value { get; set; }
     }
 
     public sealed class WatchlistInput

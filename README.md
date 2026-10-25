@@ -13,6 +13,7 @@
 | **Log & review** | Rate (half stars), review, mark as rewatch / spoilers, pick the watched date, and save it to your Letterboxd diary | Signed in |
 | **After-watching prompt** | A small "Log it on Letterboxd?" card once you have watched most of a movie (works from any client, not just the web) | Signed in |
 | **Watchlist** | Add or remove a film from your Letterboxd watchlist; optionally mirror it onto Jellyfin favourites | Signed in |
+| **Jellyfin buttons → Letterboxd** | Optional: Jellyfin's own watchlist button updates your Letterboxd watchlist, and the heart likes the film on Letterboxd (both off by default; turn them on in the plugin settings) | Signed in |
 | **Activity from friends** | Your friends' ratings and reviews for the film | Signed in |
 
 Every Jellyfin user connects **their own** Letterboxd account. Nobody can see or use anybody else's.

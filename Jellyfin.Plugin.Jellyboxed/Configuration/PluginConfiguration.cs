@@ -49,6 +49,12 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets a value indicating whether users may mirror their Letterboxd watchlist onto Jellyfin favourites.</summary>
     public bool AllowWatchlistToFavorites { get; set; } = true;
 
+    /// <summary>Gets or sets a value indicating whether clicking the watchlist button on a Jellyfin film also changes the Letterboxd watchlist.</summary>
+    public bool PushWatchlistButtonToLetterboxd { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether clicking the heart (favourite) button on a Jellyfin film also likes it on Letterboxd.</summary>
+    public bool PushFavoriteButtonToLetterboxd { get; set; }
+
     // ---- Behaviour ----
 
     /// <summary>Gets or sets the percentage of a film that must be watched before the "log it?" prompt appears.</summary>

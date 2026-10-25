@@ -4,6 +4,14 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-26
+
+### Added
+- **Jellyfin's watchlist and heart buttons can update Letterboxd.** Two new switches in the plugin settings (both off by default): clicking the watchlist button on a film adds or removes it on your Letterboxd watchlist, and clicking the heart likes or un-likes it on Letterboxd. If you mirror your Letterboxd watchlist onto favourites, the heart changes the watchlist instead. Needs a signed-in Letterboxd session.
+
+### Fixed
+- A stray orange watchlist icon appeared next to the heart and watched buttons on film pages. Badges are now only drawn on poster cards.
+
 ## [1.1.7] - 2026-10-25
 
 ### Fixed
@@ -99,7 +107,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.7...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.7...v1.2.0
 [1.1.7]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.5...v1.1.6
 [1.1.5]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.4...v1.1.5
