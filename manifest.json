@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.1.7.0",
+        "changelog": "### Fixed\n- **Poster badges (and film matching) found no movies in the library.** The library list came back without TMDB ids on Jellyfin 12, so nothing could be matched to your Letterboxd data. The library is now read with full item details, with a second look at any film that still has no id, and the log says how many movies were found.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.1.7/jellyboxed_1.1.7.0.zip",
+        "checksum": "CB2A732C93D07111EE4B5B2512A83A32",
+        "timestamp": "2026-10-25T20:16:19Z"
+      },
+      {
         "version": "1.1.6.0",
         "changelog": "### Fixed\n- Poster badges are only placed on the poster card itself. Before, the buttons and links inside a card (which also carry the film's id) could receive a badge too.\n- When a film's verified Letterboxd match has no rating or watchlist entry, the title-and-year guess is now tried too (before, a film with a stale match never got a badge).\n- The log and the browser-console check (`__jellyboxed.diagnose()`) now report how many library films, ratings and watchlist films were seen and how many were matched, so missing badges can be traced.",
         "targetAbi": "12.0.0.0",
