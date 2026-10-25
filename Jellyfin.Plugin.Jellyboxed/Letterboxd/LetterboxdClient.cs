@@ -681,7 +681,7 @@ public sealed class LetterboxdClient : IDisposable
         using var slot = await _gate.EnterAsync(ct).ConfigureAwait(false);
 
         // Direct requests were refused recently even with a pass: read through the solver's browser instead.
-        if (method == HttpMethod.Get && CloudflarePass.SolverOnly && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl))
+        if (method == HttpMethod.Get && CloudflarePass.Background && CloudflarePass.SolverOnly && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl))
         {
             var viaSolver = await FetchViaSolverAsync(url, ct).ConfigureAwait(false);
             if (viaSolver is not null)
@@ -747,7 +747,7 @@ public sealed class LetterboxdClient : IDisposable
                     }
                 }
 
-                if (botCheck && method == HttpMethod.Get && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl) && CloudflarePass.Current is not null)
+                if (botCheck && method == HttpMethod.Get && CloudflarePass.Background && !string.IsNullOrWhiteSpace(Config.FlareSolverrUrl) && CloudflarePass.Current is not null)
                 {
                     // Even a fresh pass is refused for direct requests: let the solver's browser load the page.
                     _logger.LogWarning("Jellyboxed: Letterboxd still refuses direct requests after a pass; reading pages through the solver for now.");

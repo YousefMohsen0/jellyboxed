@@ -160,6 +160,8 @@ public sealed class SyncService : BackgroundService
 
     private async Task RunJobAsync(Guid userId, SyncKind kind, CancellationToken ct)
     {
+        // Only background work may read pages through the solver; page views must never wait on it.
+        CloudflarePass.Background = true;
         var account = _accounts.Get(userId);
         if (account is null || account.Level == AuthLevel.None)
         {

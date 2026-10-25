@@ -4,6 +4,12 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-10-25
+
+### Fixed
+- Opening a film no longer waits on the bot-check solver (those requests timed out and also held up the sync). Only background syncs read pages through the solver now.
+- A page loaded through the solver is no longer wrongly rejected as a bot check just because it mentions Cloudflare. Only a real challenge page (its title) counts, and the log now shows the page title and size when one is rejected.
+
 ## [1.1.3] - 2026-10-25
 
 ### Fixed
@@ -71,7 +77,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.4...HEAD
+[1.1.4]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.0...v1.1.1
