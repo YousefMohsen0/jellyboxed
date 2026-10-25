@@ -137,6 +137,11 @@ internal static class CloudflarePass
     internal static void PreferSolverFor(TimeSpan duration) =>
         Interlocked.Exchange(ref _solverOnlyUntilTicks, DateTimeOffset.UtcNow.Add(duration).UtcTicks);
 
+    private static readonly AsyncLocal<bool> BackgroundFlag = new();
+
+    /// <summary>True inside background sync work. Only that work may use the (slow) solver for page reads.</summary>
+    internal static bool Background { get => BackgroundFlag.Value; set => BackgroundFlag.Value = value; }
+
     internal sealed record Fetched(int Status, string Body, string FinalUrl);
 
     /// <summary>
@@ -190,10 +195,19 @@ internal static class CloudflarePass
 
                 var body = solution["response"]?.GetValue<string>() ?? string.Empty;
                 var status = solution["status"]?.GetValue<int>() ?? 200;
-                if (body.Contains("Just a moment", StringComparison.OrdinalIgnoreCase) || body.Contains("cf-chl", StringComparison.OrdinalIgnoreCase))
+                var title = System.Text.RegularExpressions.Regex.Match(body, "<title[^>]*>(.*?)</title>", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline).Groups[1].Value.Trim();
+                var challenged = title.Contains("Just a moment", StringComparison.OrdinalIgnoreCase)
+                    || title.Contains("Attention Required", StringComparison.OrdinalIgnoreCase)
+                    || (status is 403 or 503 && body.Contains("challenge-platform", StringComparison.OrdinalIgnoreCase));
+                if (challenged)
                 {
-                    logger.LogWarning("Jellyboxed: the solver was shown a bot check while loading {Url} and could not pass it.", url);
+                    logger.LogWarning("Jellyboxed: the solver was shown a bot check while loading {Url} (HTTP {Status}, page title \"{Title}\", {Length} bytes) and could not pass it.", url, status, title, body.Length);
                     return null;
+                }
+
+                if (status >= 400)
+                {
+                    logger.LogWarning("Jellyboxed: the solver loaded {Url} but Letterboxd answered HTTP {Status} (page title \"{Title}\").", url, status, title);
                 }
 
                 return new Fetched(status, body, solution["url"]?.GetValue<string>() ?? url);
