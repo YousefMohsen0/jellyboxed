@@ -35,6 +35,7 @@
     var loadingMe = false;
     var badges = {}; // itemId (32 hex) -> {r, l, w}
     var badgesEtag = null;
+    var badgeStats = null;
     var badgesVersion = 0;
     var badgesLoadedAt = 0;
     var mountedFor = null; // item id the panel is currently shown for
@@ -862,6 +863,7 @@
         return api('badges', { etag: badgesEtag || '', timeout: 60000 }).then(function (res) {
             if (res && res.notModified) { return; }
             badges = (res && res.items) || {};
+            badgeStats = (res && res.stats) || null;
             badgesEtag = res && res.__etag ? res.__etag : null;
             badgesVersion++;
             log('badges', Object.keys(badges).length);
@@ -1165,7 +1167,7 @@
         return {
             version: VERSION, signedIn: signedIn(), connected: !!(me && me.account && me.account.connected),
             badgesEnabled: !!(me && me.features && me.features.badges), badgeItems: ids.length,
-            badgeIdsSample: ids.slice(0, 3), cards: cards.length, cardsWithId: withId, cardsWithBadgeData: inBadges, cardsPainted: painted,
+            badgeIdsSample: ids.slice(0, 3), serverCounts: badgeStats, cards: cards.length, cardsWithId: withId, cardsWithBadgeData: inBadges, cardsPainted: painted,
             sampleCard: sample, ui: me && me.ui
         };
     };

@@ -8,7 +8,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ### Fixed
 - Poster badges are only placed on the poster card itself. Before, the buttons and links inside a card (which also carry the film's id) could receive a badge too.
-- The browser-console check now reports the badge data and a sample card (`__jellyboxed.diagnose()`).
+- When a film's verified Letterboxd match has no rating or watchlist entry, the title-and-year guess is now tried too (before, a film with a stale match never got a badge).
+- The log and the browser-console check (`__jellyboxed.diagnose()`) now report how many library films, ratings and watchlist films were seen and how many were matched, so missing badges can be traced.
 
 ## [1.1.5] - 2026-10-25
 
