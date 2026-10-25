@@ -101,4 +101,18 @@ public class PluginLogicTests
         gate.Report(HttpStatusCode.Forbidden, null, botCheck: false); // a plain 403 (private profile) must not stop everything
         using (await gate.EnterAsync(CancellationToken.None)) { }
     }
+
+    [Theory]
+    [InlineData("The Matrix", 1999, "the-matrix-1999", "the-matrix")]
+    [InlineData("Amélie", 2001, "amelie-2001", "amelie")]
+    [InlineData("Ocean's Eleven", null, "oceans-eleven", null)]
+    public void GuessSlugs_BuildsLetterboxdStyleSlugs(string name, int? year, string first, string? second)
+    {
+        var guesses = Services.FilmService.GuessSlugs(name, year).ToList();
+        Assert.Equal(first, guesses[0]);
+        if (second is not null)
+        {
+            Assert.Equal(second, guesses[1]);
+        }
+    }
 }

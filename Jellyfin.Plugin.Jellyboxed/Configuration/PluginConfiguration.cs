@@ -63,6 +63,9 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets where the rating badge is drawn on a poster: top/middle/bottom combined with left/center/right, e.g. "bottom-center".</summary>
     public string BadgePosition { get; set; } = "top-left";
 
+    /// <summary>Gets or sets a value indicating whether badges fade out while the pointer is over the poster.</summary>
+    public bool BadgeHideOnHover { get; set; }
+
     /// <summary>Gets or sets a value indicating whether the star rating is shown on badges.</summary>
     public bool BadgeShowRating { get; set; } = true;
 

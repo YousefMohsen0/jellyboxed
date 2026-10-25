@@ -4,6 +4,21 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-10-25
+
+### Fixed
+- Poster badges now sit on the poster picture itself (they could end up on the outer card, under the poster, and be hidden by some themes). Cards that identify as shows, seasons or episodes are skipped.
+- If Jellyfin can't tell what kind of item a page is, Jellyboxed no longer assumes it is a film; it shows nothing and checks again shortly.
+
+## [1.1.5] - 2026-10-25
+
+### Fixed
+- The Letterboxd panel and floating button no longer appear on shows, seasons or episodes.
+- Poster badges (stars, loved, watchlist) now also appear for films that have not been matched yet: the plugin guesses Letterboxd's address from the title and year until the verified match is known.
+
+### Added
+- **Hide badge on hover** setting: the poster badge fades out while the pointer is over the poster.
+
 ## [1.1.4] - 2026-10-25
 
 ### Fixed
@@ -77,7 +92,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.1...v1.1.2

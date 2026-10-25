@@ -345,6 +345,36 @@ public sealed class FilmService
 
     // ------------------------------------------------------------------ poster badges
 
+    /// <summary>Letterboxd's usual slug for a film: the title, plus the year when another film shares the name.</summary>
+    internal static IEnumerable<string> GuessSlugs(string name, int? year)
+    {
+        var sb = new System.Text.StringBuilder();
+        var decomposed = name.Normalize(System.Text.NormalizationForm.FormD);
+        foreach (var c in decomposed)
+        {
+            var cat = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c);
+            if (cat == System.Globalization.UnicodeCategory.NonSpacingMark || c == '\'' || c == '\u2019')
+            {
+                continue;
+            }
+
+            sb.Append(char.IsLetterOrDigit(c) ? char.ToLowerInvariant(c) : '-');
+        }
+
+        var slug = System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "-+", "-").Trim('-');
+        if (slug.Length == 0)
+        {
+            yield break;
+        }
+
+        if (year is not null)
+        {
+            yield return slug + "-" + year;
+        }
+
+        yield return slug;
+    }
+
     /// <summary>Joins the user's Letterboxd data with the movies in the library. Cached until either side changes.</summary>
     public BadgeSet BuildBadges(LetterboxdAccount account)
     {
@@ -360,14 +390,29 @@ public sealed class FilmService
         {
             foreach (var movie in _jellyfin.GetMovies())
             {
+                // Prefer the verified match; until a film has been matched, guess Letterboxd's slug from title and year
+                // so badges appear straight after the first sync.
                 var slug = _slugs.Peek(movie.TmdbId);
-                if (slug is null)
+                RatingEntry? entry = null;
+                var onWatchlist = false;
+                if (slug is not null)
                 {
-                    continue;
+                    file.Value.Ratings.TryGetValue(slug, out entry);
+                    onWatchlist = file.Value.Watchlist.Contains(slug);
+                }
+                else
+                {
+                    foreach (var guess in GuessSlugs(movie.Name, movie.Year))
+                    {
+                        file.Value.Ratings.TryGetValue(guess, out entry);
+                        onWatchlist = file.Value.Watchlist.Contains(guess);
+                        if (entry is not null || onWatchlist)
+                        {
+                            break;
+                        }
+                    }
                 }
 
-                file.Value.Ratings.TryGetValue(slug, out var entry);
-                var onWatchlist = file.Value.Watchlist.Contains(slug);
                 if ((entry is null || (entry.Rating is null && !entry.Loved)) && !onWatchlist)
                 {
                     continue;

@@ -872,12 +872,22 @@
     function badgeNode(entry) {
         var ui = (me && me.ui) || {};
         var pos = /^(top|bottom)-(left|center|right)$|^middle-(left|right)$/.test(ui.badgePosition || '') ? ui.badgePosition : 'top-left';
-        var node = h('div', { class: 'jbx-badge jbx-pos-' + pos, 'aria-hidden': 'true' });
+        var node = h('div', { class: 'jbx-badge jbx-pos-' + pos + (ui.badgeHideOnHover ? ' jbx-hide-hover' : ''), 'aria-hidden': 'true' });
         var any = false;
         if (entry.r && ui.badgeRating !== false) { node.appendChild(svg(STAR_PATH, 11, 'currentColor', 'jbx-badge-star')); node.appendChild(h('span', { text: String(entry.r) })); any = true; }
         if (entry.l && ui.badgeLoved !== false) { node.appendChild(svg(HEART_PATH, 12, '#ff3b5c')); any = true; }
         if (entry.w && ui.badgeWatchlist !== false) { node.appendChild(svg(BOOKMARK_PATH, 11, '#e0a030')); any = true; }
         return any ? node : null;
+    }
+
+    /** The poster image box of a card. Tries the most specific element first so the badge sits on the picture, not on the title text below it. */
+    function poster(card) {
+        var picks = ['.cardImageContainer', '.cardScalable', '[class*="cardImage" i]', '.cardBox'];
+        for (var i = 0; i < picks.length; i++) {
+            var el = card.querySelector(picks[i]);
+            if (el) { return el; }
+        }
+        return card;
     }
 
     function paintBadges() {
@@ -890,9 +900,12 @@
         var stamp = badgesVersion + '';
         for (var i = 0; i < cards.length; i++) {
             var card = cards[i];
-            var id = normId(card.getAttribute('data-id'));
+            var id = normId(card.getAttribute('data-id') || card.getAttribute('data-itemid') || card.getAttribute('data-item-id'));
             if (!id) { continue; }
-            var container = card.querySelector('.cardImageContainer, .cardScalable, .cardBox, [class*="image" i]') || card;
+            // Letterboxd only knows films: skip cards that say they are shows, seasons, episodes, people, etc.
+            var cardType = card.getAttribute('data-type') || card.getAttribute('data-itemtype');
+            if (cardType && cardType !== 'Movie') { continue; }
+            var container = poster(card);
             // Jellyfin recycles card elements: repaint when the item or the data changed.
             var key = id + ':' + stamp;
             if (card.getAttribute('data-jbx') === key) { continue; }
@@ -905,6 +918,7 @@
             if (!node) { continue; }
             if (window.getComputedStyle(container).position === 'static') { container.style.position = 'relative'; }
             container.appendChild(node);
+            if (me.ui && me.ui.badgeHideOnHover) { card.classList.add('jbx-hover-host'); }
         }
     }
 
@@ -1018,6 +1032,19 @@
 
     // ------------------------------------------------------------------ page watching
 
+    var kindCache = {};
+    var kindPending = {};
+
+    function fetchKind(id) {
+        if (kindPending[id]) { return; }
+        kindPending[id] = true;
+        var done = function (kind) { delete kindPending[id]; kindCache[id] = kind; if (kind === 'Unknown') { setTimeout(function () { delete kindCache[id]; }, 5000); } scheduleScan(); };
+        try {
+            var c = apiClient();
+            c.getItem(c.getCurrentUserId(), id).then(function (item) { done((item && item.Type) || 'Unknown'); }, function () { done('Unknown'); });
+        } catch (e) { done('Unknown'); }
+    }
+
     var scan = throttleFrame(function () {
         if (!signedIn() || !me) { return; }
         paintBadges();
@@ -1027,6 +1054,10 @@
             removeFab();
             return;
         }
+        // Letterboxd only knows films: never show the panel or the button on shows, seasons, episodes, etc.
+        var kind = kindCache[id];
+        if (kind === undefined) { fetchKind(id); return; }
+        if (kind !== 'Movie') { removePanel(); removeFab(); return; }
         if (panelVisible()) { removeFab(); } else { scheduleFabCheck(id); }
         var existing = document.querySelector('.jbx-panel:not(.jbx-in-dialog)');
         if (existing && existing.isConnected && existing.getAttribute('data-item') === id && mountedFor === id) {
