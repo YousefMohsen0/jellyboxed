@@ -70,6 +70,52 @@ public class ParserTests
     }
 
     [Fact]
+    public void Rss_ReadsWatchedDateAndRewatch()
+    {
+        const string xml = """
+        <rss xmlns:letterboxd="https://letterboxd.com" xmlns:tmdb="https://themoviedb.org"><channel>
+          <item><link>https://letterboxd.com/me/film/heat/1/</link><letterboxd:watchedDate>2026-10-20</letterboxd:watchedDate><letterboxd:rewatch>Yes</letterboxd:rewatch><tmdb:movieId>949</tmdb:movieId></item>
+          <item><link>https://letterboxd.com/me/film/dune-2021/</link><letterboxd:watchedDate>not-a-date</letterboxd:watchedDate><letterboxd:rewatch>No</letterboxd:rewatch></item>
+        </channel></rss>
+        """;
+        var entries = LetterboxdParser.ParseRss(xml);
+        Assert.Equal("2026-10-20", entries[0].WatchedDate);
+        Assert.True(entries[0].Rewatch);
+        Assert.Null(entries[1].WatchedDate);
+        Assert.False(entries[1].Rewatch);
+    }
+
+    [Fact]
+    public void DiaryRows_ReadSlugDateAndRewatch()
+    {
+        const string html = """
+        <table><tr class="diary-entry-row viewing-poster-container"><td class="td-day diary-day center"><a href="/me/films/diary/for/2026/10/20/">20</a></td>
+        <td class="td-film-details"><div class="film-poster" data-film-slug="heat"></div></td><td class="td-rewatch center icon-status-off"></td></tr>
+        <tr class="diary-entry-row viewing-poster-container"><td class="td-day"><a href="/me/films/diary/for/2025/01/02/">2</a></td>
+        <td class="td-film-details"><div class="film-poster" data-film-slug="heat"></div></td><td class="td-rewatch center"></td></tr></table>
+        """;
+        var rows = LetterboxdParser.ParseDiaryRows(html);
+        Assert.Equal(2, rows.Count);
+        Assert.Equal(new DiaryRow("heat", "2026-10-20", false), rows[0]);
+        Assert.Equal(new DiaryRow("heat", "2025-01-02", true), rows[1]);
+    }
+
+    [Fact]
+    public void NoteViewing_CountsNewDatesOnly()
+    {
+        var state = new Jellyfin.Plugin.Jellyboxed.Data.AccountState();
+        Assert.True(state.NoteViewing("heat", "2026-01-01", false));
+        Assert.False(state.NoteViewing("heat", "2026-01-01", false));
+        Assert.True(state.NoteViewing("heat", "2026-03-01", true));
+        Assert.False(state.NoteViewing("heat", "2025-12-01", false));
+        var info = state.Diary["heat"];
+        Assert.Equal(2, info.Count);
+        Assert.True(info.Rewatch);
+        Assert.Equal("2026-03-01", info.Last);
+        Assert.Contains("heat", state.Watched);
+    }
+
+    [Fact]
     public void FindLikeUrls_PicksTheRightDirection()
     {
         const string html = "<a href=\"/film/dune/like/\"></a><a href=\"/film/dune/unlike/\"></a><a href=\"/me/likes/films/\"></a><span data-url=\"https://letterboxd.com/s/film:1/like\"></span>";

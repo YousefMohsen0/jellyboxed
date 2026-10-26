@@ -13,7 +13,10 @@ namespace Jellyfin.Plugin.Jellyboxed.Letterboxd;
 public sealed record FriendRow(FriendActivity Friend, string? ReviewHref);
 
 /// <summary>An entry from a member's public RSS diary feed.</summary>
-public sealed record RssEntry(string Slug, string? TmdbId, double? Rating, bool Liked, string Title);
+public sealed record RssEntry(string Slug, string? TmdbId, double? Rating, bool Liked, string Title, string? WatchedDate = null, bool Rewatch = false);
+
+/// <summary>One row of the diary page.</summary>
+public sealed record DiaryRow(string Slug, string? Date, bool Rewatch);
 
 /// <summary>
 /// All knowledge of Letterboxd's HTML lives here, in pure functions, so that when Letterboxd changes
@@ -310,10 +313,59 @@ public static class LetterboxdParser
             }
 
             var liked = string.Equals((string?)item.Element(lb + "memberLike"), "Yes", StringComparison.OrdinalIgnoreCase);
-            result.Add(new RssEntry(slug, string.IsNullOrWhiteSpace(tmdbId) ? null : tmdbId, rating, liked, title));
+            var watched = (string?)item.Element(lb + "watchedDate");
+            if (watched is not null && !DateOnly.TryParseExact(watched.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            {
+                watched = null;
+            }
+
+            var rewatch = string.Equals((string?)item.Element(lb + "rewatch"), "Yes", StringComparison.OrdinalIgnoreCase);
+            result.Add(new RssEntry(slug, string.IsNullOrWhiteSpace(tmdbId) ? null : tmdbId, rating, liked, title, watched?.Trim(), rewatch));
         }
 
         return result;
+    }
+
+    /// <summary>Reads the rows of a diary page: film, viewing date and whether it was a rewatch. Unknown markup yields nothing.</summary>
+    public static List<DiaryRow> ParseDiaryRows(string html)
+    {
+        var rows = new List<DiaryRow>();
+        var parts = html.Split("diary-entry-row", StringSplitOptions.None);
+        for (var i = 1; i < parts.Length; i++)
+        {
+            var row = parts[i];
+            var end = row.IndexOf("</tr>", StringComparison.OrdinalIgnoreCase);
+            if (end > 0)
+            {
+                row = row[..end];
+            }
+
+            var slugMatch = System.Text.RegularExpressions.Regex.Match(row, "data-film-slug=\"([^\"]+)\"");
+            var slug = slugMatch.Success ? slugMatch.Groups[1].Value : null;
+            if (slug is null)
+            {
+                var link = System.Text.RegularExpressions.Regex.Match(row, "href=\"(?:https://letterboxd\\.com)?/film/([^/\"]+)/");
+                slug = link.Success ? link.Groups[1].Value : null;
+            }
+
+            if (slug is null)
+            {
+                continue;
+            }
+
+            string? date = null;
+            var d = System.Text.RegularExpressions.Regex.Match(row, "/for/(\\d{4})/(\\d{2})/(\\d{2})/");
+            if (d.Success)
+            {
+                date = $"{d.Groups[1].Value}-{d.Groups[2].Value}-{d.Groups[3].Value}";
+            }
+
+            var cell = System.Text.RegularExpressions.Regex.Match(row, "td-rewatch[^\"]*\"");
+            var rewatch = cell.Success && !cell.Value.Contains("icon-status-off", StringComparison.Ordinal);
+            rows.Add(new DiaryRow(slug, date, rewatch));
+        }
+
+        return rows;
     }
 
     /// <summary>Gets the slug from ".../film/{slug}/..." (also works for ".../user/film/{slug}/1/").</summary>

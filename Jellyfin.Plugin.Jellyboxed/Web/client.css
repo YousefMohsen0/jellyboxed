@@ -280,12 +280,12 @@
     transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.jbx-friend.jbx-has-review {
+.jbx-friend {
     cursor: pointer;
 }
 
-.jbx-friend.jbx-has-review:hover,
-.jbx-friend.jbx-has-review:focus-visible {
+.jbx-friend:hover,
+.jbx-friend:focus-visible {
     transform: translateY(-2px);
     border-color: var(--jbx-accent);
     background: rgba(255, 255, 255, 0.09);
@@ -780,3 +780,7 @@
 .jbx-badge.jbx-hide-hover { transition: opacity 0.15s ease; }
 *:hover > .jbx-badge.jbx-hide-hover,
 .jbx-hover-host:hover .jbx-badge.jbx-hide-hover { opacity: 0; }
+
+.jbx-watched { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.85em; opacity: 0.85; }
+.jbx-watched-icon { color: #7ec8ff; flex: none; }
+.jbx-badge-date { font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }

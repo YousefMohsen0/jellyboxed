@@ -294,6 +294,30 @@ public sealed class LetterboxdClient : IDisposable
         return slugs;
     }
 
+    /// <summary>Reads the user's diary (viewing dates and rewatches). Returns what could be read; the diary is optional extra detail.</summary>
+    public async Task<List<DiaryRow>> ScrapeDiaryAsync(string user, int maxPages, CancellationToken ct)
+    {
+        var rows = new List<DiaryRow>();
+        for (var page = 1; page <= maxPages; page++)
+        {
+            var res = await GetAsync($"{Base}/{user}/films/diary/page/{page}/", ct).ConfigureAwait(false);
+            if (!res.Ok)
+            {
+                break;
+            }
+
+            var found = LetterboxdParser.ParseDiaryRows(res.Body);
+            if (found.Count == 0)
+            {
+                break;
+            }
+
+            rows.AddRange(found);
+        }
+
+        return rows;
+    }
+
     public async Task<List<RssEntry>> GetRssAsync(CancellationToken ct)
     {
         var res = await GetAsync($"{Base}/{Uri.EscapeDataString(Username)}/rss/", ct).ConfigureAwait(false);

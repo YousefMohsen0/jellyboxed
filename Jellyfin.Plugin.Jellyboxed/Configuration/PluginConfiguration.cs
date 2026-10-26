@@ -72,6 +72,12 @@ public class PluginConfiguration : BasePluginConfiguration
     /// <summary>Gets or sets a value indicating whether badges fade out while the pointer is over the poster.</summary>
     public bool BadgeHideOnHover { get; set; }
 
+    /// <summary>Gets or sets a value indicating whether poster badges show an eye for films marked as watched on Letterboxd.</summary>
+    public bool BadgeShowWatched { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether poster badges show the date the film was last watched.</summary>
+    public bool BadgeShowDate { get; set; }
+
     /// <summary>Gets or sets a value indicating whether the star rating is shown on badges.</summary>
     public bool BadgeShowRating { get; set; } = true;
 

@@ -4,6 +4,19 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-27
+
+### Added
+- **Watched date and rewatches.** The film panel now shows "Watched on 20 Oct 2026", and "· 2 times" or "· rewatch" when your diary has more than one viewing. The full sync reads your Letterboxd diary, and the quick sync picks up new entries from your feed.
+- **Watched on Letterboxd.** Films you have marked as watched (even without a rating) are recognised and shown in the panel as "Watched".
+- Two new poster-badge switches (off by default): show an eye for films watched on Letterboxd, and show the date you last watched the film (with a repeat mark for rewatches).
+
+### Changed
+- Friend cards react to the mouse (lift and highlight) even when that friend has no review.
+
+### Notes
+- The first full sync after updating also reads your watched films and diary, so it takes a little longer. Dates for old entries appear after that sync.
+
 ## [1.2.0] - 2026-10-26
 
 ### Added
@@ -107,7 +120,8 @@ First release: a complete Jellyfin 12 plugin rebuilt from the original proxy-and
 - Cookies rotated by Letterboxd are saved instead of lost.
 - Transient failures are no longer cached as "not found".
 
-[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.7...v1.2.0
 [1.1.7]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.6...v1.1.7
 [1.1.6]: https://github.com/YousefMohsen0/jellyboxed/compare/v1.1.5...v1.1.6
