@@ -29,6 +29,17 @@ public sealed class MineDto
 
     /// <summary>Gets or sets a value indicating whether a first sync has completed (so "not rated" is trustworthy).</summary>
     public bool Synced { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether the film is marked as watched on Letterboxd (rated or not).</summary>
+    public bool Watched { get; set; }
+
+    /// <summary>Gets or sets the date of the latest logged viewing (yyyy-MM-dd), when known.</summary>
+    public string? WatchedOn { get; set; }
+
+    /// <summary>Gets or sets how many viewings the diary shows.</summary>
+    public int Watches { get; set; }
+
+    public bool Rewatch { get; set; }
 }
 
 /// <summary>Poster badge data (compact on purpose: one of these per rated film in the library).</summary>
@@ -42,6 +53,18 @@ public sealed class BadgeDto
 
     [JsonPropertyName("w")]
     public bool Watchlist { get; set; }
+
+    [JsonPropertyName("s")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Watched { get; set; }
+
+    [JsonPropertyName("d")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? WatchedOn { get; set; }
+
+    [JsonPropertyName("n")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public int Watches { get; set; }
 }
 
 public sealed class BadgeSet

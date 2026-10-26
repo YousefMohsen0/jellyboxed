@@ -26,6 +26,7 @@
     var NS_SVG = 'http://www.w3.org/2000/svg';
     var HEART_PATH = 'M12 21s-6.7-4.35-9.3-8.2C1 10.1 1.6 6.6 4.6 5.2 6.9 4.1 9.4 5 12 8c2.6-3 5.1-3.9 7.4-2.8 3 1.4 3.6 4.9 1.9 7.6C18.7 16.65 12 21 12 21z';
     var STAR_PATH = 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z';
+    var EYE_PATH = 'M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z';
     var BOOKMARK_PATH = 'M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z';
 
     // ------------------------------------------------------------------ state
@@ -809,6 +810,17 @@
             body.appendChild(rating);
         }
 
+        // --- watched on Letterboxd (with date and rewatches when the diary knows them)
+        if (mine.watched) {
+            var seen = h('div', { class: 'jbx-watched' }, svg(EYE_PATH, 15, 'currentColor', 'jbx-watched-icon'));
+            var text = 'Watched';
+            var day = formatDay(mine.watchedOn, false);
+            if (day) { text += ' on ' + day; }
+            if (mine.watches > 1) { text += ' · ' + mine.watches + ' times'; } else if (mine.rewatch) { text += ' · rewatch'; }
+            seen.appendChild(h('span', { text: text }));
+            body.appendChild(seen);
+        }
+
         // --- actions
         var actions = h('div', { class: 'jbx-actions-row' });
         if (canWrite && f.logging !== false && f.myRating !== false) {
@@ -872,7 +884,7 @@
             list.forEach(function (fr) {
                 var hasReview = !!(fr.review && fr.review.trim());
                 var avatarSrc = fr.avatar ? apiUrl(fr.avatar) : '';
-                var item = h('button', { type: 'button', class: 'jbx-friend' + (hasReview ? ' jbx-has-review' : ''), title: fr.name + (fr.rating ? ' – ' + fr.rating : ''), onclick: function () {
+                var item = h('button', { type: 'button', class: 'jbx-friend' + (hasReview ? ' jbx-has-review' : ''), title: fr.name + (fr.rating ? ' – ' + fr.rating : '') + (hasReview ? '' : ' (no review)'), onclick: function () {
                     openFriendModal({ name: fr.name, avatar: avatarSrc, rating: fr.rating, review: hasReview ? fr.review : '', url: fr.url });
                 } },
                     h('span', { class: 'jbx-avatar-wrap' },
@@ -920,6 +932,17 @@
         }).catch(function (e) { log('badges failed', e); });
     }
 
+    /** "2026-10-26" -> a short local date. Returns '' when it is not a date. */
+    function formatDay(iso, short) {
+        var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+        if (!m) { return ''; }
+        var d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        if (isNaN(d.getTime())) { return ''; }
+        try {
+            return d.toLocaleDateString(undefined, short ? { day: 'numeric', month: 'short', year: '2-digit' } : { day: 'numeric', month: 'short', year: 'numeric' });
+        } catch (e) { return iso; }
+    }
+
     function badgeNode(entry) {
         var ui = (me && me.ui) || {};
         var pos = /^(top|bottom)-(left|center|right)$|^middle-(left|right)$/.test(ui.badgePosition || '') ? ui.badgePosition : 'top-left';
@@ -928,6 +951,11 @@
         if (entry.r && ui.badgeRating !== false) { node.appendChild(svg(STAR_PATH, 11, 'currentColor', 'jbx-badge-star')); node.appendChild(h('span', { text: String(entry.r) })); any = true; }
         if (entry.l && ui.badgeLoved !== false) { node.appendChild(svg(HEART_PATH, 12, '#ff3b5c')); any = true; }
         if (entry.w && ui.badgeWatchlist !== false) { node.appendChild(svg(BOOKMARK_PATH, 11, '#e0a030')); any = true; }
+        if (entry.s && ui.badgeWatched) { node.appendChild(svg(EYE_PATH, 12, '#7ec8ff')); any = true; }
+        if (entry.d && ui.badgeDate) {
+            var when = formatDay(entry.d, true);
+            if (when) { node.appendChild(h('span', { class: 'jbx-badge-date', text: when + (entry.n > 1 ? ' ↻' : '') })); any = true; }
+        }
         return any ? node : null;
     }
 

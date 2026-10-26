@@ -260,7 +260,7 @@ public sealed class SyncService : BackgroundService
 
         // 1. Ratings, one list per star value (so we know which films have which rating).
         var ratings = new Dictionary<string, double>(StringComparer.Ordinal);
-        status.Total = RatingBuckets.Length + 2;
+        status.Total = RatingBuckets.Length + 4;
         foreach (var value in RatingBuckets)
         {
             status.Phase = $"reading {value.ToString("0.#", CultureInfo.InvariantCulture)}★ films";
@@ -287,6 +287,34 @@ public sealed class SyncService : BackgroundService
         catch (LetterboxdException ex) when (ex.Kind == LetterboxdErrorKind.ProfileUnavailable)
         {
             _logger.LogInformation("Jellyboxed: watchlist of {Username} is not readable; skipping it", account.Username);
+        }
+
+        status.Done++;
+
+        // 2b. Everything marked as watched, and the diary (dates, rewatches). Optional detail: a failure here
+        // keeps what we already know instead of failing the whole sync.
+        status.Phase = "reading watched films";
+        HashSet<string>? watchedAll = null;
+        try
+        {
+            watchedAll = await client.ScrapeGridAsync(p => $"https://letterboxd.com/{user}/films/page/{p}/", 100, ct).ConfigureAwait(false);
+        }
+        catch (LetterboxdException ex) when (ex.Kind != LetterboxdErrorKind.Blocked)
+        {
+            _logger.LogInformation("Jellyboxed: could not read the watched films of {Username}: {Message}", account.Username, ex.Message);
+        }
+
+        status.Done++;
+
+        status.Phase = "reading diary";
+        List<DiaryRow>? diaryRows = null;
+        try
+        {
+            diaryRows = await client.ScrapeDiaryAsync(user, 60, ct).ConfigureAwait(false);
+        }
+        catch (LetterboxdException ex) when (ex.Kind != LetterboxdErrorKind.Blocked)
+        {
+            _logger.LogInformation("Jellyboxed: could not read the diary of {Username}: {Message}", account.Username, ex.Message);
         }
 
         status.Done++;
@@ -322,6 +350,30 @@ public sealed class SyncService : BackgroundService
             }
 
             file.Value.Ratings = next;
+            if (watchedAll is not null)
+            {
+                file.Value.Watched = new HashSet<string>(watchedAll, StringComparer.Ordinal);
+            }
+
+            file.Value.Watched.UnionWith(next.Keys.Where(k => next[k].Rating is not null));
+            if (diaryRows is { Count: > 0 })
+            {
+                var diary = new Dictionary<string, WatchInfo>(StringComparer.Ordinal);
+                foreach (var group in diaryRows.GroupBy(r => r.Slug, StringComparer.Ordinal))
+                {
+                    var count = group.Count();
+                    diary[group.Key] = new WatchInfo
+                    {
+                        Last = group.Where(r => r.Date is not null).Select(r => r.Date!).DefaultIfEmpty().Max(),
+                        Count = count,
+                        Rewatch = count > 1 || group.Any(r => r.Rewatch),
+                    };
+                }
+
+                file.Value.Diary = diary;
+                file.Value.Watched.UnionWith(diary.Keys);
+            }
+
             if (watchlist is not null)
             {
                 file.Value.Watchlist = watchlist;
@@ -465,6 +517,11 @@ public sealed class SyncService : BackgroundService
                 if (entry.TmdbId is not null)
                 {
                     _slugs.Remember(entry.TmdbId, entry.Slug);
+                }
+
+                if (file.Value.NoteViewing(entry.Slug, entry.WatchedDate, entry.Rewatch))
+                {
+                    changed = true;
                 }
 
                 if (entry.Rating is null && !entry.Liked)

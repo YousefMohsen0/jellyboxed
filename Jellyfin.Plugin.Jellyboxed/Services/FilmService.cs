@@ -83,6 +83,15 @@ public sealed class FilmService
             everFullySynced = file.Value.FullSyncAt is not null;
             entry = file.Value.Ratings.TryGetValue(slug, out var e) ? Copy(e) : null;
             dto.InWatchlist = file.Value.Watchlist.Contains(slug);
+            dto.Watched = file.Value.Watched.Contains(slug);
+            if (file.Value.Diary.TryGetValue(slug, out var diary))
+            {
+                dto.Watched = true;
+                dto.WatchedOn = diary.Last;
+                dto.Watches = diary.Count;
+                dto.Rewatch = diary.Rewatch || diary.Count > 1;
+            }
+
             syncedAt = file.Value.FullSyncAt ?? file.Value.QuickSyncAt;
         }
 
@@ -131,6 +140,11 @@ public sealed class FilmService
         }
 
         Fill(dto, entry);
+        if (dto.Rating is not null)
+        {
+            dto.Watched = true; // a rating implies the film was seen
+        }
+
         _pool.PersistCookies(account.UserId);
         return dto;
     }
@@ -289,6 +303,7 @@ public sealed class FilmService
                 ReviewKnown = true,
                 UpdatedAt = DateTimeOffset.UtcNow,
             };
+            file.Value.NoteViewing(slug, date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), input.Rewatch);
             file.Value.PromptSnoozedUntil[itemId.ToString("N")] = DateTimeOffset.UtcNow.AddHours(Math.Max(1, Config.PromptCooldownHours));
         }
 
@@ -409,7 +424,7 @@ public sealed class FilmService
     /// <summary>Joins the user's Letterboxd data with the movies in the library. Cached until either side changes.</summary>
     public BadgeSet BuildBadges(LetterboxdAccount account)
     {
-        var stamp = $"{_jellyfin.IndexStamp}-{_states.Version(account.UserId)}-{_slugs.Stamp}";
+        var stamp = $"{_jellyfin.IndexStamp}-{_states.Version(account.UserId)}-{_slugs.Stamp}-{(Config.BadgeShowWatched ? 1 : 0)}{(Config.BadgeShowDate ? 1 : 0)}";
         if (_badgeCache.TryGetValue(account.UserId, out var hit) && hit.Key == stamp)
         {
             return hit.Set;
@@ -426,37 +441,48 @@ public sealed class FilmService
         {
             ratingCount = file.Value.Ratings.Count;
             watchlistCount = file.Value.Watchlist.Count;
+            var showWatched = Config.BadgeShowWatched;
+            var showDate = Config.BadgeShowDate;
             foreach (var movie in _jellyfin.GetMovies())
             {
                 libraryCount++;
-                RatingEntry? entry = null;
-                var onWatchlist = false;
-                var viaGuess = false;
 
                 // Prefer the verified match; when it finds nothing (or there is none yet), guess Letterboxd's slug from
                 // title and year so badges still appear.
-                var slug = _slugs.Peek(movie.TmdbId);
-                if (slug is not null)
+                var candidates = new List<string>();
+                var verifiedSlug = _slugs.Peek(movie.TmdbId);
+                if (verifiedSlug is not null)
                 {
-                    file.Value.Ratings.TryGetValue(slug, out entry);
-                    onWatchlist = file.Value.Watchlist.Contains(slug);
+                    candidates.Add(verifiedSlug);
                 }
 
-                if (entry is null && !onWatchlist)
+                var verifiedCount = candidates.Count;
+                candidates.AddRange(GuessSlugs(movie.Name, movie.Year));
+
+                RatingEntry? entry = null;
+                var onWatchlist = false;
+                var watched = false;
+                WatchInfo? diary = null;
+                var viaGuess = false;
+                for (var i = 0; i < candidates.Count; i++)
                 {
-                    foreach (var guess in GuessSlugs(movie.Name, movie.Year))
+                    var slug = candidates[i];
+                    file.Value.Ratings.TryGetValue(slug, out entry);
+                    onWatchlist = file.Value.Watchlist.Contains(slug);
+                    file.Value.Diary.TryGetValue(slug, out diary);
+                    watched = file.Value.Watched.Contains(slug) || diary is not null || entry?.Rating is not null;
+                    var interesting = entry is not null || onWatchlist || (watched && (showWatched || showDate));
+                    if (interesting)
                     {
-                        file.Value.Ratings.TryGetValue(guess, out entry);
-                        onWatchlist = file.Value.Watchlist.Contains(guess);
-                        if (entry is not null || onWatchlist)
-                        {
-                            viaGuess = true;
-                            break;
-                        }
+                        viaGuess = i >= verifiedCount;
+                        break;
                     }
                 }
 
-                if ((entry is null || (entry.Rating is null && !entry.Loved)) && !onWatchlist)
+                var hasRating = entry is not null && (entry.Rating is not null || entry.Loved);
+                var showSeen = showWatched && watched;
+                var date = showDate ? diary?.Last : null;
+                if (!hasRating && !onWatchlist && !showSeen && date is null)
                 {
                     continue;
                 }
@@ -470,7 +496,15 @@ public sealed class FilmService
                     verified++;
                 }
 
-                set.Items[movie.ItemId.ToString("N")] = new BadgeDto { Rating = entry?.Rating, Loved = entry?.Loved ?? false, Watchlist = onWatchlist };
+                set.Items[movie.ItemId.ToString("N")] = new BadgeDto
+                {
+                    Rating = entry?.Rating,
+                    Loved = entry?.Loved ?? false,
+                    Watchlist = onWatchlist,
+                    Watched = showSeen,
+                    WatchedOn = date,
+                    Watches = date is null ? 0 : (diary?.Count ?? 0),
+                };
             }
         }
 

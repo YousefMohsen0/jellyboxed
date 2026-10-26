@@ -66,12 +66,55 @@ public class RatingEntry
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+/// <summary>What the diary says about one film: when it was last watched, how often, and whether any viewing was a rewatch.</summary>
+public class WatchInfo
+{
+    /// <summary>Gets or sets the date of the most recent viewing, as yyyy-MM-dd.</summary>
+    public string? Last { get; set; }
+
+    public int Count { get; set; }
+
+    public bool Rewatch { get; set; }
+}
+
 /// <summary>Everything cached for a single Jellyfin user's Letterboxd account.</summary>
 public class AccountState
 {
     public Dictionary<string, RatingEntry> Ratings { get; set; } = new(StringComparer.Ordinal);
 
     public HashSet<string> Watchlist { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>Gets or sets every film marked as watched on Letterboxd (rated or not).</summary>
+    public HashSet<string> Watched { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>Gets or sets diary details (last viewing date, number of viewings, rewatch) per film slug.</summary>
+    public Dictionary<string, WatchInfo> Diary { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>Records that a film was watched, optionally on a given day (yyyy-MM-dd). Safe to call again for the same viewing.</summary>
+    public bool NoteViewing(string slug, string? date, bool rewatch)
+    {
+        var changed = Watched.Add(slug);
+        if (date is null)
+        {
+            return changed;
+        }
+
+        if (!Diary.TryGetValue(slug, out var info))
+        {
+            Diary[slug] = new WatchInfo { Last = date, Count = 1, Rewatch = rewatch };
+            return true;
+        }
+
+        if (info.Last is null || string.CompareOrdinal(date, info.Last) > 0)
+        {
+            info.Last = date;
+            info.Count = Math.Max(1, info.Count) + 1;
+            info.Rewatch = info.Rewatch || rewatch || info.Count > 1;
+            return true;
+        }
+
+        return changed;
+    }
 
     public DateTimeOffset? FullSyncAt { get; set; }
 
