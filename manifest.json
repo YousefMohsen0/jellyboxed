@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "1.2.1.0",
+        "changelog": "### Added\n- **Watched date and rewatches.** The film panel now shows \"Watched on 20 Oct 2026\", and \"\u00b7 2 times\" or \"\u00b7 rewatch\" when your diary has more than one viewing. The full sync reads your Letterboxd diary, and the quick sync picks up new entries from your feed.\n- **Watched on Letterboxd.** Films you have marked as watched (even without a rating) are recognised and shown in the panel as \"Watched\".\n- Two new poster-badge switches (off by default): show an eye for films watched on Letterboxd, and show the date you last watched the film (with a repeat mark for rewatches).\n\n### Changed\n- Friend cards react to the mouse (lift and highlight) even when that friend has no review.\n\n### Notes\n- The first full sync after updating also reads your watched films and diary, so it takes a little longer. Dates for old entries appear after that sync.",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/YousefMohsen0/jellyboxed/releases/download/v1.2.1/jellyboxed_1.2.1.0.zip",
+        "checksum": "7A2BD7C11C97D8921D3FC5E16A4F4D83",
+        "timestamp": "2026-10-26T21:56:37Z"
+      },
+      {
         "version": "1.2.0.0",
         "changelog": "### Added\n- **Jellyfin's watchlist and heart buttons can update Letterboxd.** Two new switches in the plugin settings (both off by default): clicking the watchlist button on a film adds or removes it on your Letterboxd watchlist, and clicking the heart likes or un-likes it on Letterboxd. If you mirror your Letterboxd watchlist onto favourites, the heart changes the watchlist instead. Needs a signed-in Letterboxd session.\n\n### Fixed\n- A stray orange watchlist icon appeared next to the heart and watched buttons on film pages. Badges are now only drawn on poster cards.",
         "targetAbi": "12.0.0.0",
